@@ -20,7 +20,7 @@ from analysis_passes.declare_declarein import DeclareAndDeclareinListener
 from analysis_passes.class_properties import ClassPropertiesListener, InterfacePropertiesListener
 
 
-class Project():
+class Project:
     tree = None
 
     def Parse(self, fileAddress):
@@ -201,10 +201,18 @@ if __name__ == '__main__':
     main()
     db = db_open("../benchmark2_database.oudb")
 
-    # path = "D:/Term 7/Compiler/Final proj/github/OpenUnderstand/benchmark"
-    path = "D:/Term 7/Compiler/Final proj/github/OpenUnderstand/benchmark"
+
+    def listToString(s):
+        str1 = ""
+        for ele in s[0:len(s) - 1]:
+            str1 += (ele + "/")
+        return str1
+
+    rawPath = str(os.path.dirname(__file__).replace("\\", "/"))
+    pathArray = rawPath.split('/')
+    path = listToString(pathArray) + "benchmark/JavaProject"
     files = p.getListOfFiles(path)
-    ########## AGE KHASTID YEK FILE RO RUN KONID:
+    # AGE KHASTID YEK FILE RO RUN KONID:
     # files = ["../../Java codes/javaCoupling.java"]
 
     for file_address in files:
