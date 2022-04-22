@@ -7,3 +7,5 @@ To test your module with one of the benchmark projects, first, unzip it and then
 Please do not add/commit any unzipped file to the benchmark directory.
 
 The description of these projects are available on [CodART benchmark projects](https://m-zakeri.github.io/CodART/benchmarks).
+
+All sources are zipped for size reduction purpose.
