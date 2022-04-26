@@ -31,20 +31,24 @@ class ModifyByListener(JavaParserLabeledListener):
     def enterMethodDeclaration(self, ctx:JavaParserLabeled.MethodDeclarationContext):
         self.methods.append(ctx.IDENTIFIER().getText())
 
+
+
     def enterExpression6(self, ctx:JavaParserLabeled.Expression6Context):
         line_col = str(ctx.children[0].start).split(",")[3][:-1].split(':')
+        print(self.methods[-1])
         print("66666666666666666666 ->", line_col)
         self.modifyBy.append({
-            "scope": None, "ent": None,
-            "line": line_col[0], "col": line_col[0]
+            "scope": self.methods[-1], "ent": None,
+            "line": line_col[0], "col": line_col[1]
         })
 
     def enterExpression7(self, ctx:JavaParserLabeled.Expression7Context):
         line_col = str(ctx.children[1].start).split(",")[3][:-1].split(':')
+        print(self.methods[-1])
         print("777777777777777 ->", line_col)
         self.modifyBy.append({
-            "scope": None, "ent": None,
-            "line": line_col[0], "col": line_col[0]
+            "scope": self.methods[-1], "ent": None,
+            "line": line_col[0], "col": line_col[1]
         })
 
     def enterExpression21(self, ctx:JavaParserLabeled.Expression21Context):
@@ -54,7 +58,7 @@ class ModifyByListener(JavaParserLabeledListener):
         if ctx.children[1].getText() in operations:
             print("2121212121212121 ->", line_col)
             self.modifyBy.append({
-                "scope": None, "ent": None,
-                "line": line_col[0], "col": line_col[0]
+                "scope": self.methods[-1], "ent": None,
+                "line": line_col[0], "col": line_col[1]
             })
 

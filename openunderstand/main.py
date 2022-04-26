@@ -60,29 +60,29 @@ class Project:
         print("processing file:", file_ent)
         return file_ent
 
-    def add_references(self, ref_dict):
+    def add_references(self, ref_dict, file_ent):
         print("-----------------------")
         print(KindModel.get_or_none(_name="Java Modify")._id)
         ref, _ = ReferenceModel.get_or_create(
             _kind=KindModel.get_or_none(_name="Java Modify")._id,
             _line=ref_dict['line'],
-            _file="importing_ent._id",
+            _file=file_ent,
             _column=ref_dict['col'],
             _ent="importing_ent._id",
-            _scope="importing_ent._id",
+            _scope=EntityModel.get_or_create(_name=ref_dict['scope'])[0]._id,
         )
         inverse_ref, _ = ReferenceModel.get_or_create(
             _kind=KindModel.get_or_none(_name="Java Modifyby")._id,
             _line=ref_dict['line'],
-            _file="importing_ent._id",
+            _file=file_ent,
             _column=ref_dict['col'],
-            _ent="importing_ent._id",
+            _ent=EntityModel.get_or_create(_name=ref_dict['scope'])[0]._id,
             _scope="importing_ent._id",
         )
 
-    def addModifyRefs(self, ref_dicts):
+    def addModifyRefs(self, ref_dicts, file_ent):
         for ref_dict in ref_dicts:
-            self.add_references(ref_dict)
+            self.add_references(ref_dict, file_ent)
 
     # def add_java_file_entity(file_path, file_name):
     #     kind_id = KindModel.get_or_none(_name="Java File")._id
@@ -245,7 +245,7 @@ if __name__ == '__main__':
 
     rawPath = str(os.path.dirname(__file__).replace("\\", "/"))
     pathArray = rawPath.split('/')
-    path = listToString(pathArray) + "benchmark/JavaProject"
+    path = listToString(pathArray) + "benchmark\calculator_app"
     files = p.getListOfFiles(path)
     # AGE KHASTID YEK FILE RO RUN KONID:
     # files = ["../../Java codes/javaCoupling.java"]
@@ -279,6 +279,6 @@ if __name__ == '__main__':
             listener = ModifyByListener()
             listener.modifyBy = []
             p.Walk(listener, tree)
-            p.addModifyRefs(listener.modifyBy)
+            p.addModifyRefs(listener.modifyBy, file_ent)
         except Exception as e:
             print("An Error occurred for reference declare in file:" + file_address + "\n" + str(e))
