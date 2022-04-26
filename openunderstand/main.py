@@ -18,6 +18,7 @@ from analysis_passes.couple_coupleby import ImplementCoupleAndImplementByCoupleB
 from analysis_passes.create_createby import CreateAndCreateBy
 from analysis_passes.declare_declarein import DeclareAndDeclareinListener
 from analysis_passes.javaModifyBy import ModifyByListener
+from analysis_passes.javaUseModule import UseModuleListener
 from analysis_passes.class_properties import ClassPropertiesListener, InterfacePropertiesListener
 
 
@@ -80,9 +81,26 @@ class Project:
             _scope="importing_ent._id",
         )
 
+    def add_module_references(self, ref_dict, file_ent):
+        print("-----------------------")
+        print(KindModel.get_or_none(_name="Java Module")._id)
+        ref, _ = ReferenceModel.get_or_create(
+            _kind=KindModel.get_or_none(_name="Java Module")._id,
+            _line=ref_dict['line'],
+            _file=file_ent,
+            _column=ref_dict['col'],
+            _ent="importing_ent._id",
+            _scope=file_ent,
+        )
+
+
     def addModifyRefs(self, ref_dicts, file_ent):
         for ref_dict in ref_dicts:
             self.add_references(ref_dict, file_ent)
+
+    def addModuleRefs(self, ref_dicts, file_ent):
+        for ref_dict in ref_dicts:
+            self.add_module_references(ref_dict, file_ent)
 
     # def add_java_file_entity(file_path, file_name):
     #     kind_id = KindModel.get_or_none(_name="Java File")._id
@@ -280,5 +298,15 @@ if __name__ == '__main__':
             listener.modifyBy = []
             p.Walk(listener, tree)
             p.addModifyRefs(listener.modifyBy, file_ent)
+        except Exception as e:
+            print("An Error occurred for reference declare in file:" + file_address + "\n" + str(e))
+
+        try:
+            # declare
+            # importing_entity = add_java_file_entity(file_path, file_name)
+            listener = UseModuleListener()
+            listener.useModules = []
+            p.Walk(listener, tree)
+            p.addModuleRefs(listener.useModules, file_ent)
         except Exception as e:
             print("An Error occurred for reference declare in file:" + file_address + "\n" + str(e))
