@@ -17,6 +17,7 @@ from oudb.fill import main
 from analysis_passes.couple_coupleby import ImplementCoupleAndImplementByCoupleBy
 from analysis_passes.create_createby import CreateAndCreateBy
 from analysis_passes.declare_declarein import DeclareAndDeclareinListener
+from analysis_passes.javaModifyBy import ModifyByListener
 from analysis_passes.class_properties import ClassPropertiesListener, InterfacePropertiesListener
 
 
@@ -58,6 +59,40 @@ class Project:
         file.close()
         print("processing file:", file_ent)
         return file_ent
+
+    def add_references(self, ref_dict):
+        print("-----------------------")
+        print(KindModel.get_or_none(_name="Java Modify")._id)
+        ref, _ = ReferenceModel.get_or_create(
+            _kind=KindModel.get_or_none(_name="Java Modify")._id,
+            _line=ref_dict['line'],
+            _file="importing_ent._id",
+            _column=ref_dict['col'],
+            _ent="importing_ent._id",
+            _scope="importing_ent._id",
+        )
+        inverse_ref, _ = ReferenceModel.get_or_create(
+            _kind=KindModel.get_or_none(_name="Java Modifyby")._id,
+            _line=ref_dict['line'],
+            _file="importing_ent._id",
+            _column=ref_dict['col'],
+            _ent="importing_ent._id",
+            _scope="importing_ent._id",
+        )
+
+    def addModifyRefs(self, ref_dicts):
+        for ref_dict in ref_dicts:
+            self.add_references(ref_dict)
+
+    # def add_java_file_entity(file_path, file_name):
+    #     kind_id = KindModel.get_or_none(_name="Java File")._id
+    #     obj, _ = EntityModel.get_or_create(
+    #         _kind=kind_id,
+    #         _name=file_name,
+    #         _longname=file_path,
+    #         _contents=FileStream(file_path),
+    #     )
+    #     return obj
 
     def addDeclareRefs(self, ref_dicts, file_ent):
         for ref_dict in ref_dicts:
@@ -240,9 +275,10 @@ if __name__ == '__main__':
             print("An Error occurred for reference create in file:" + file_address + "\n" + str(e))
         try:
             # declare
-            listener = DeclareAndDeclareinListener()
-            listener.declare = []
+            # importing_entity = add_java_file_entity(file_path, file_name)
+            listener = ModifyByListener()
+            listener.modifyBy = []
             p.Walk(listener, tree)
-            p.addDeclareRefs(listener.declare, file_ent)
+            p.addModifyRefs(listener.modifyBy)
         except Exception as e:
             print("An Error occurred for reference declare in file:" + file_address + "\n" + str(e))
