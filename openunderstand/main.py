@@ -62,14 +62,12 @@ class Project:
         return file_ent
 
     def add_references(self, ref_dict, file_ent):
-        print("-----------------------")
-        print(KindModel.get_or_none(_name="Java Modify")._id)
         ref, _ = ReferenceModel.get_or_create(
             _kind=KindModel.get_or_none(_name="Java Modify")._id,
             _line=ref_dict['line'],
             _file=file_ent,
             _column=ref_dict['col'],
-            _ent="importing_ent._id",
+            _ent="NOT FOUND",
             _scope=EntityModel.get_or_create(_name=ref_dict['scope'])[0]._id,
         )
         inverse_ref, _ = ReferenceModel.get_or_create(
@@ -78,29 +76,79 @@ class Project:
             _file=file_ent,
             _column=ref_dict['col'],
             _ent=EntityModel.get_or_create(_name=ref_dict['scope'])[0]._id,
-            _scope="importing_ent._id",
+            _scope="NOT FOUND",
         )
 
-    def add_module_references(self, ref_dict, file_ent):
-        print("-----------------------")
-        print(KindModel.get_or_none(_name="Java Module")._id)
+    def add_module_references(self, ref_dict, file_ent, file_address):
+        EntityModel.get_or_create(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Module")._id, _longname=file_address.replace('/', '\\'))
+        ent = EntityModel.get_or_none(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Module")._id, _longname=file_address.replace('/', '\\'))
         ref, _ = ReferenceModel.get_or_create(
-            _kind=KindModel.get_or_none(_name="Java Module")._id,
+            _kind=KindModel.get_or_none(_name="Java ModuleUse")._id,
             _line=ref_dict['line'],
             _file=file_ent,
             _column=ref_dict['col'],
-            _ent="importing_ent._id",
+            _ent=ent,
             _scope=file_ent,
         )
+        inverse_ref, _ = ReferenceModel.get_or_create(
+            _kind=KindModel.get_or_none(_name="Java ModuleUseby")._id,
+            _line=ref_dict['line'],
+            _file=file_ent,
+            _column=ref_dict['col'],
+            _ent=file_ent,
+            _scope=ent,
+        )
+
+    def add_unknown_module_references(self, ref_dicts, file_ent, file_address):
+        for ref_dict in ref_dicts:
+            EntityModel.get_or_create(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Unknown Module")._id, _longname=file_address.replace('/', '\\'))
+            ent = EntityModel.get_or_none(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Unknown Module")._id, _longname=file_address.replace('/', '\\'))
+            ref, _ = ReferenceModel.get_or_create(
+                _kind=KindModel.get_or_none(_name="Java ModuleUse")._id,
+                _line=ref_dict['line'],
+                _file=file_ent,
+                _column=ref_dict['col'],
+                _ent=ent,
+                _scope=file_ent,
+            )
+            inverse_ref, _ = ReferenceModel.get_or_create(
+                _kind=KindModel.get_or_none(_name="Java ModuleUseby")._id,
+                _line=ref_dict['line'],
+                _file=file_ent,
+                _column=ref_dict['col'],
+                _ent=file_ent,
+                _scope=ent,
+            )
+
+    def add_unresolved_module_references(self, ref_dicts, file_ent, file_address):
+        for ref_dict in ref_dicts:
+            EntityModel.get_or_create(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Unresolved Module")._id, _longname=file_address.replace('/', '\\'))
+            ent = EntityModel.get_or_none(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Unresolved Module")._id, _longname=file_address.replace('/', '\\'))
+            ref, _ = ReferenceModel.get_or_create(
+                _kind=KindModel.get_or_none(_name="Java ModuleUse")._id,
+                _line=ref_dict['line'],
+                _file=file_ent,
+                _column=ref_dict['col'],
+                _ent=ent,
+                _scope=file_ent,
+            )
+            inverse_ref, _ = ReferenceModel.get_or_create(
+                _kind=KindModel.get_or_none(_name="Java ModuleUseby")._id,
+                _line=ref_dict['line'],
+                _file=file_ent,
+                _column=ref_dict['col'],
+                _ent=file_ent,
+                _scope=ent,
+            )
 
 
     def addModifyRefs(self, ref_dicts, file_ent):
         for ref_dict in ref_dicts:
             self.add_references(ref_dict, file_ent)
 
-    def addModuleRefs(self, ref_dicts, file_ent):
+    def addModuleRefs(self, ref_dicts, file_ent, file_address):
         for ref_dict in ref_dicts:
-            self.add_module_references(ref_dict, file_ent)
+            self.add_module_references(ref_dict, file_ent, file_address)
 
     # def add_java_file_entity(file_path, file_name):
     #     kind_id = KindModel.get_or_none(_name="Java File")._id
@@ -265,6 +313,9 @@ if __name__ == '__main__':
     pathArray = rawPath.split('/')
     path = listToString(pathArray) + "benchmark\calculator_app"
     files = p.getListOfFiles(path)
+
+
+
     # AGE KHASTID YEK FILE RO RUN KONID:
     # files = ["../../Java codes/javaCoupling.java"]
 
@@ -307,6 +358,8 @@ if __name__ == '__main__':
             listener = UseModuleListener()
             listener.useModules = []
             p.Walk(listener, tree)
-            p.addModuleRefs(listener.useModules, file_ent)
+            p.addModuleRefs(listener.useModules, file_ent, file_address)
+            p.add_unknown_module_references(listener.useUnknownModules, file_ent, file_address)
+            p.add_unresolved_module_references(listener.useUnresolvedModules, file_ent, file_address)
         except Exception as e:
             print("An Error occurred for reference declare in file:" + file_address + "\n" + str(e))

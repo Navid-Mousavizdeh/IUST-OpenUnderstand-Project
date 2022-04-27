@@ -35,8 +35,8 @@ class ModifyByListener(JavaParserLabeledListener):
 
     def enterExpression6(self, ctx:JavaParserLabeled.Expression6Context):
         line_col = str(ctx.children[0].start).split(",")[3][:-1].split(':')
-        print(self.methods[-1])
-        print("66666666666666666666 ->", line_col)
+        print("Modify ----")
+        print("Expression 6 ->", line_col)
         self.modifyBy.append({
             "scope": self.methods[-1], "ent": None,
             "line": line_col[0], "col": line_col[1]
@@ -44,8 +44,8 @@ class ModifyByListener(JavaParserLabeledListener):
 
     def enterExpression7(self, ctx:JavaParserLabeled.Expression7Context):
         line_col = str(ctx.children[1].start).split(",")[3][:-1].split(':')
-        print(self.methods[-1])
-        print("777777777777777 ->", line_col)
+        print("Modify ----")
+        print("Expression 7 ->", line_col)
         self.modifyBy.append({
             "scope": self.methods[-1], "ent": None,
             "line": line_col[0], "col": line_col[1]
@@ -56,7 +56,8 @@ class ModifyByListener(JavaParserLabeledListener):
         print(self.methods[-1])
         line_col = str(ctx.children[0].start).split(",")[3][:-1].split(':')
         if ctx.children[1].getText() in operations:
-            print("2121212121212121 ->", line_col)
+            print("Modify ----")
+            print("Expression 21 ->", line_col)
             self.modifyBy.append({
                 "scope": self.methods[-1], "ent": None,
                 "line": line_col[0], "col": line_col[1]

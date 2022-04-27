@@ -26,6 +26,8 @@ class UseModuleListener(JavaParserLabeledListener):
 
     """
     useModules = []
+    useUnknownModules = []
+    useUnresolvedModules = []
     methods = []
 
     def enterMethodDeclaration(self, ctx: JavaParserLabeled.MethodDeclarationContext):
@@ -36,6 +38,26 @@ class UseModuleListener(JavaParserLabeledListener):
         print("Module ----")
         print(ctx.AT(), ctx.children[1].IDENTIFIER()[0].getText(), line_col)
         self.useModules.append({
-            "scope": self.methods[-1], "ent": None,
+            "scope": None, "ent": None, "name": ctx.children[1].IDENTIFIER()[0].getText(),
             "line": line_col[0], "col": line_col[1]
         })
+        self.useUnresolvedModules.append({
+            "scope": None, "ent": None, "name": ctx.children[1].IDENTIFIER()[0].getText(),
+            "line": line_col[0], "col": line_col[1]
+        })
+
+    def enterPackageDeclaration(self, ctx:JavaParserLabeled.PackageDeclarationContext):
+        packageNameArray = ctx.getText().replace('package', '').split('.')
+        if len(packageNameArray) == 4 and packageNameArray[0] == 'com':
+            print("Unknown Module ----")
+            print(ctx.getChild(1).IDENTIFIER()[2].getText())
+            self.useUnknownModules.append({
+                "scope": None, "ent": ctx.getChild(1).IDENTIFIER()[3].getText(), "name":ctx.getChild(1).IDENTIFIER()[2].getText(),
+                "line": 1, "col": 1
+            })
+            self.useUnresolvedModules.append({
+                "scope": None, "ent": ctx.getChild(1).IDENTIFIER()[3].getText(),
+                "name": ctx.getChild(1).IDENTIFIER()[2].getText(),
+                "line": 1, "col": 1
+            })
+
