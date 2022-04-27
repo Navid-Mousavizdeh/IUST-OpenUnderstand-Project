@@ -9,6 +9,7 @@ public class SayHelloClass {
         System.out.println("Hello from IUST");
         if (N > 0){
             N--;
+            --N;
         }
         else
         {
@@ -27,11 +28,11 @@ public class SayHelloClass {
             N *= (M * 33);
         }
     }
-    public static void saynamedModule() {
-        Module module = SayHelloClass.class.getModule();
-        System.out.println("Module: " + module);
-        System.out.println("Name: " + module.getName());
-        System.out.println("isNamed: " + module.isNamed());
-        System.out.println("Descriptor: " + module.getDescriptor());
-    }
+//     public static void saynamedModule() {
+//         Module module = SayHelloClass.class.getModule();
+//         System.out.println("Module: " + module);
+//         System.out.println("Name: " + module.getName());
+//         System.out.println("isNamed: " + module.isNamed());
+//         System.out.println("Descriptor: " + module.getDescriptor());
+//     }
 }

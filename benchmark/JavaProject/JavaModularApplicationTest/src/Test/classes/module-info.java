@@ -1,3 +1,3 @@
-module Test {
-    requires Main;
-}
+// module Test {
+//     requires Main;
+// }
