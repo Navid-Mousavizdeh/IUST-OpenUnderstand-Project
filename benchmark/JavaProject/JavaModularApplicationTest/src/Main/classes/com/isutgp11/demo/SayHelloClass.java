@@ -5,7 +5,7 @@ package com.isutgp11.demo;
 public class SayHelloClass {
     static int N = 33;
     static int M = 0;
-    public static void sayHello() {
+    public void sayHello() {
         System.out.println("Hello from IUST");
         if (N > 0){
             N--;
@@ -17,7 +17,7 @@ public class SayHelloClass {
             N += M * 33;
         }
     }
-    public static void sayGoodBye() {
+    public void sayGoodBye() {
         System.out.println("Hello from IUST");
         if (N > 0){
             N /= 3;
@@ -28,11 +28,11 @@ public class SayHelloClass {
             N *= (M * 33);
         }
     }
-//     public static void saynamedModule() {
-//         Module module = SayHelloClass.class.getModule();
-//         System.out.println("Module: " + module);
-//         System.out.println("Name: " + module.getName());
-//         System.out.println("isNamed: " + module.isNamed());
-//         System.out.println("Descriptor: " + module.getDescriptor());
-//     }
+    public void saynamedModule() {
+        Module module = SayHelloClass.class.getModule();
+        System.out.println("Module: " + module);
+        System.out.println("Name: " + module.getName());
+        System.out.println("isNamed: " + module.isNamed());
+        System.out.println("Descriptor: " + module.getDescriptor());
+    }
 }

@@ -17,8 +17,8 @@ from oudb.fill import main
 from analysis_passes.couple_coupleby import ImplementCoupleAndImplementByCoupleBy
 from analysis_passes.create_createby import CreateAndCreateBy
 from analysis_passes.declare_declarein import DeclareAndDeclareinListener
-from analysis_passes.javaModifyBy import ModifyByListener
-from analysis_passes.javaUseModule import UseModuleListener
+from analysis_passes.java_modify_modifyby import ModifyModifyByListener
+from analysis_passes.java_usemodule_usemoduleby import UseModuleUseModuleByListener
 from analysis_passes.class_properties import ClassPropertiesListener, InterfacePropertiesListener
 
 
@@ -62,26 +62,32 @@ class Project:
         return file_ent
 
     def add_references(self, ref_dict, file_ent):
+        scope = EntityModel.get_or_create(_name=ref_dict['scope'])[0]
+        ent = EntityModel.get_or_create(_name=ref_dict['ent'],
+                                        _kind=154,
+                                        _longname=scope._longname + "." + ref_dict['ent'],
+                                        _parent_id=scope._id)[0]
         ref, _ = ReferenceModel.get_or_create(
             _kind=KindModel.get_or_none(_name="Java Modify")._id,
             _line=ref_dict['line'],
             _file=file_ent,
             _column=ref_dict['col'],
-            _ent="NOT FOUND",
-            _scope=EntityModel.get_or_create(_name=ref_dict['scope'])[0]._id,
+            _ent=ent._id,
+            _scope=scope._id,
         )
         inverse_ref, _ = ReferenceModel.get_or_create(
             _kind=KindModel.get_or_none(_name="Java Modifyby")._id,
             _line=ref_dict['line'],
             _file=file_ent,
             _column=ref_dict['col'],
-            _ent=EntityModel.get_or_create(_name=ref_dict['scope'])[0]._id,
-            _scope="NOT FOUND",
+            _ent=scope._id,
+            _scope=ent._id,
         )
 
     def add_module_references(self, ref_dict, file_ent, file_address):
-        EntityModel.get_or_create(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Module")._id, _longname=file_address.replace('/', '\\'))
-        ent = EntityModel.get_or_none(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Module")._id, _longname=file_address.replace('/', '\\'))
+        ent = EntityModel.get_or_create(_name=ref_dict['name'],
+                                        _kind=KindModel.get_or_none(_name="Java Module")._id,
+                                      _longname=file_address.replace('/', '\\'))
         ref, _ = ReferenceModel.get_or_create(
             _kind=KindModel.get_or_none(_name="Java ModuleUse")._id,
             _line=ref_dict['line'],
@@ -101,8 +107,10 @@ class Project:
 
     def add_unknown_module_references(self, ref_dicts, file_ent, file_address):
         for ref_dict in ref_dicts:
-            EntityModel.get_or_create(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Unknown Module")._id, _longname=file_address.replace('/', '\\'))
-            ent = EntityModel.get_or_none(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Unknown Module")._id, _longname=file_address.replace('/', '\\'))
+            ent = EntityModel.get_or_create(_name=ref_dict['name'],
+                                      _kind=KindModel.get_or_none(_name="Java Unknown Module")._id,
+                                      _longname=file_address.replace('/', '\\'))
+
             ref, _ = ReferenceModel.get_or_create(
                 _kind=KindModel.get_or_none(_name="Java ModuleUse")._id,
                 _line=ref_dict['line'],
@@ -122,8 +130,9 @@ class Project:
 
     def add_unresolved_module_references(self, ref_dicts, file_ent, file_address):
         for ref_dict in ref_dicts:
-            EntityModel.get_or_create(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Unresolved Module")._id, _longname=file_address.replace('/', '\\'))
-            ent = EntityModel.get_or_none(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Unresolved Module")._id, _longname=file_address.replace('/', '\\'))
+            ent = EntityModel.get_or_create(_name=ref_dict['name'],
+                                          _kind=KindModel.get_or_none(_name="Java Unresolved Module")._id,
+                                          _longname=file_address.replace('/', '\\'))
             ref, _ = ReferenceModel.get_or_create(
                 _kind=KindModel.get_or_none(_name="Java ModuleUse")._id,
                 _line=ref_dict['line'],
@@ -140,7 +149,6 @@ class Project:
                 _ent=file_ent,
                 _scope=ent,
             )
-
 
     def addModifyRefs(self, ref_dicts, file_ent):
         for ref_dict in ref_dicts:
@@ -302,30 +310,32 @@ if __name__ == '__main__':
     main()
     db = db_open("../benchmark2_database.oudb")
 
-
     def listToString(s):
+        """a method to find projects path dynamically"""
         str1 = ""
         for ele in s[0:len(s) - 1]:
-            str1 += (ele + "/")
+            str1 += (ele + "\\")
         return str1
 
     rawPath = str(os.path.dirname(__file__).replace("\\", "/"))
     pathArray = rawPath.split('/')
-    path = listToString(pathArray) + "benchmark\calculator_app"
+    path = listToString(pathArray) + "benchmark"
     files = p.getListOfFiles(path)
 
-
+    print(len(files))
 
     # AGE KHASTID YEK FILE RO RUN KONID:
     # files = ["../../Java codes/javaCoupling.java"]
 
     for file_address in files:
+
         try:
             file_ent = p.getFileEntity(file_address)
             tree = p.Parse(file_address)
         except Exception as e:
             print("An Error occurred in file:" + file_address + "\n" + str(e))
             continue
+
         try:
             # implement
             listener = ImplementCoupleAndImplementByCoupleBy()
@@ -333,7 +343,8 @@ if __name__ == '__main__':
             p.Walk(listener, tree)
             p.addImplementOrImplementByRefs(listener.implement, file_ent, file_address)
         except Exception as e:
-            print("An Error occurred for reference implement in file:" + file_address + "\n" + str(e))
+            print("An Error occurred for reference implement/implementBy in file:" + file_address + "\n" + str(e))
+
         try:
             # create
             listener = CreateAndCreateBy()
@@ -341,25 +352,33 @@ if __name__ == '__main__':
             p.Walk(listener, tree)
             p.addCreateRefs(listener.create, file_ent, file_address)
         except Exception as e:
-            print("An Error occurred for reference create in file:" + file_address + "\n" + str(e))
+            print("An Error occurred for reference create/createBy in file:" + file_address + "\n" + str(e))
+
         try:
             # declare
-            # importing_entity = add_java_file_entity(file_path, file_name)
-            listener = ModifyByListener()
+            listener = DeclareAndDeclareinListener()
+            listener.declare = []
+            p.Walk(listener, tree)
+            p.addDeclareRefs(listener.declare, file_ent)
+        except Exception as e:
+            print("An Error occurred for reference declare/declaredIn in file:" + file_address + "\n" + str(e))
+
+        try:
+            # modify
+            listener = ModifyModifyByListener()
             listener.modifyBy = []
             p.Walk(listener, tree)
             p.addModifyRefs(listener.modifyBy, file_ent)
         except Exception as e:
-            print("An Error occurred for reference declare in file:" + file_address + "\n" + str(e))
+            print("An Error occurred for reference modify/modifyBy in file:" + file_address + "\n" + str(e))
 
-        try:
-            # declare
-            # importing_entity = add_java_file_entity(file_path, file_name)
-            listener = UseModuleListener()
-            listener.useModules = []
-            p.Walk(listener, tree)
-            p.addModuleRefs(listener.useModules, file_ent, file_address)
-            p.add_unknown_module_references(listener.useUnknownModules, file_ent, file_address)
-            p.add_unresolved_module_references(listener.useUnresolvedModules, file_ent, file_address)
-        except Exception as e:
-            print("An Error occurred for reference declare in file:" + file_address + "\n" + str(e))
+        # try:
+        #     # useModule
+        #     listener = UseModuleUseModuleByListener()
+        #     listener.useModules = []
+        #     p.Walk(listener, tree)
+        #     p.addModuleRefs(listener.useModules, file_ent, file_address)
+        #     p.add_unknown_module_references(listener.useUnknownModules, file_ent, file_address)
+        #     p.add_unresolved_module_references(listener.useUnresolvedModules, file_ent, file_address)
+        # except Exception as e:
+        #     print("An Error occurred for reference useModule/useModuleBy in file:" + file_address + "\n" + str(e))
