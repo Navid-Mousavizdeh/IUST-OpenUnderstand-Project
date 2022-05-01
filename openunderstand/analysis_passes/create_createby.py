@@ -22,38 +22,39 @@ import openunderstand.analysis_passes.class_properties as class_properties
 
 class CreateAndCreateBy(JavaParserLabeledListener):
 
-    def findmethodreturntype(self, c):
-        parents = ""
-        context = ""
-        current = c
-        while current is not None:
-            if type(current.parentCtx).__name__ == "MethodDeclarationContext":
-                parents=(current.parentCtx.typeTypeOrVoid().getText())
-                context=current.parentCtx.getText()
-                break
-            current = current.parentCtx
-
-        return parents,context
-
-    def findmethodacess(self, c):
-        parents = ""
-        modifiers=[]
-        current = c
-        while current is not None:
-            if "ClassBodyDeclaration" in type(current.parentCtx).__name__:
-                parents=(current.parentCtx.modifier())
-                break
-            current = current.parentCtx
-        for x in parents:
-            if x.classOrInterfaceModifier():
-                modifiers.append(x.classOrInterfaceModifier().getText())
-        return modifiers
+    # def findmethodreturntype(self, c):
+    #     parents = ""
+    #     context = ""
+    #     current = c
+    #     while current is not None:
+    #         if type(current.parentCtx).__name__ == "MethodDeclarationContext":
+    #             parents=(current.parentCtx.typeTypeOrVoid().getText())
+    #             context=current.parentCtx.getText()
+    #             break
+    #         current = current.parentCtx
+    #
+    #     return parents,context
+    #
+    # def findmethodacess(self, c):
+    #     parents = ""
+    #     modifiers=[]
+    #     current = c
+    #     while current is not None:
+    #         if "ClassBodyDeclaration" in type(current.parentCtx).__name__:
+    #             parents=(current.parentCtx.modifier())
+    #             break
+    #         current = current.parentCtx
+    #     for x in parents:
+    #         if x.classOrInterfaceModifier():
+    #             modifiers.append(x.classOrInterfaceModifier().getText())
+    #     return modifiers
 
 
     create = []
 
     def enterExpression4(self, ctx:JavaParserLabeled.Expression4Context):
         modifiers=self.findmethodacess(ctx)
+        print(modifiers)
         mothodedreturn,methodcontext=self.findmethodreturntype(ctx)
 
         if ctx.creator().classCreatorRest():
