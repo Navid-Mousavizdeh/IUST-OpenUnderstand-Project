@@ -311,7 +311,7 @@ if __name__ == '__main__':
 
     rawPath = str(os.path.dirname(__file__).replace("\\", "/"))
     pathArray = rawPath.split('/')
-    path = listToString(pathArray) + "benchmark\calculator_app"
+    path = listToString(pathArray) + "benchmark\jvlt-1.3.2"
     files = p.getListOfFiles(path)
 
 
@@ -342,24 +342,24 @@ if __name__ == '__main__':
             p.addCreateRefs(listener.create, file_ent, file_address)
         except Exception as e:
             print("An Error occurred for reference create in file:" + file_address + "\n" + str(e))
-        try:
-            # declare
-            # importing_entity = add_java_file_entity(file_path, file_name)
-            listener = ModifyByListener()
-            listener.modifyBy = []
-            p.Walk(listener, tree)
-            p.addModifyRefs(listener.modifyBy, file_ent)
-        except Exception as e:
-            print("An Error occurred for reference declare in file:" + file_address + "\n" + str(e))
+        # try:
+        #     # declare
+        #     # importing_entity = add_java_file_entity(file_path, file_name)
+        #     listener = ModifyByListener()
+        #     listener.modifyBy = []
+        #     p.Walk(listener, tree)
+        #     p.addModifyRefs(listener.modifyBy, file_ent)
+        # except Exception as e:
+        #     print("An Error occurred for reference declare in file:" + file_address + "\n" + str(e))
 
-        try:
-            # declare
-            # importing_entity = add_java_file_entity(file_path, file_name)
-            listener = UseModuleListener()
-            listener.useModules = []
-            p.Walk(listener, tree)
-            p.addModuleRefs(listener.useModules, file_ent, file_address)
-            p.add_unknown_module_references(listener.useUnknownModules, file_ent, file_address)
-            p.add_unresolved_module_references(listener.useUnresolvedModules, file_ent, file_address)
-        except Exception as e:
-            print("An Error occurred for reference declare in file:" + file_address + "\n" + str(e))
+        # try:
+        #     # declare
+        #     # importing_entity = add_java_file_entity(file_path, file_name)
+        #     listener = UseModuleListener()
+        #     listener.useModules = []
+        #     p.Walk(listener, tree)
+        #     p.addModuleRefs(listener.useModules, file_ent, file_address)
+        #     p.add_unknown_module_references(listener.useUnknownModules, file_ent, file_address)
+        #     p.add_unresolved_module_references(listener.useUnresolvedModules, file_ent, file_address)
+        # except Exception as e:
+        #     print("An Error occurred for reference declare in file:" + file_address + "\n" + str(e))
