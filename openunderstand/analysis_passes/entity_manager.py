@@ -4,9 +4,9 @@ in this module there are many classes for each individual entity as follows:
     1. File
 """
 
-__author__ = "Navid Mousavizadeh, Amir Sohrabi, Sara Younesi, Deniz Ahmadi"
+__author__ = "Navid Mousavizadeh, Amir Mohammad Sohrabi, Sara Younesi, Deniz Ahmadi"
 __copyright__ = "Copyright 2022, The OpenUnderstand Project, Iran University of Science and technology"
-__credits__ = ["Dr.Parsa", "Dr.Zakeri", "Mehdi Razavi", "Navid Mousavizadeh", "Amir Sohrabi", "Sara Younesi",
+__credits__ = ["Dr.Parsa", "Dr.Zakeri", "Mehdi Razavi", "Navid Mousavizadeh", "Amir Mohammad Sohrabi", "Sara Younesi",
                "Deniz Ahmadi"]
 __license__ = "GPL"
 __version__ = "1.0.0"
@@ -19,12 +19,13 @@ from package_entity_listener import PackageListener
 # Constants
 FILE_KIND_ID = 1
 
+
 class EntityGenerator:
     def __init__(self, path):
         file_manager = FileEntityManager(path)
         # Making entities
         self.file_ent = file_manager.get_or_creat_file_entity()
-        self.package_ent = PackageEntityManager(path, file_ent)
+        self.package_ent = PackageEntityManager(path, self.file_ent)
         self.package_string = self.package_ent.package_string
 
     def get_or_create_parent_entities(self, ctx):
@@ -32,9 +33,9 @@ class EntityGenerator:
         parents = [ctx]
         current = ctx
         while current is not None:
-            if type(current).__name__ == "ClassDeclarationContext" or type(
-                    current).__name__ == "MethodDeclarationContext" or type(
-                    current).__name__ == "InterfaceDeclarationContext":
+            if type(current).__name__ == "ClassDeclarationContext" or \
+               type(current).__name__ == "MethodDeclarationContext" or \
+               type(current).__name__ == "InterfaceDeclarationContext":
                 parents.append(current)
             current = current.parentCtx
         parents_entities = list(reversed(parents))
@@ -46,7 +47,8 @@ class EntityGenerator:
                 parent_entity_parent = self.file_ent
             else:
                 parent_entity_parent = EntityModel.get_or_none(_name=entity.parentCtx.IDENTIFIER().getText(),
-                                                               _longname=(package_string + entity.parentCtx.IDENTIFIER().getText()),
+                                                               _longname=(
+                                                                           self.package_string + entity.parentCtx.IDENTIFIER().getText()),
                                                                _contents=entity.parentCtx.getText())
             if type(current).__name__ == "MethodDeclarationContext":
                 parent_entity_type = current.parentCtx.typeTypeOrVoid().getText()
@@ -62,6 +64,7 @@ class EntityGenerator:
                 result_entities.append((parent_entity_kind, method_ent))
             if type(current).__name__ == "ClassDeclarationContext":
                 #### I WAS HERE #######
+                parent_entity_type = current.parentCtx.typeTypeOrVoid().getText()
                 method_modifiers = self.get_method_accessor(entity)
                 parent_entity_kind = self.get_method_kind(method_modifiers)
                 method_ent = EntityModel.get_or_create(
@@ -72,7 +75,6 @@ class EntityGenerator:
                     _type=parent_entity_type,
                     _contents=parent_entity_contents)
                 result_entities.append((parent_entity_kind, method_ent))
-
 
     @staticmethod
     def get_method_accessor(ctx):
@@ -97,7 +99,7 @@ class EntityGenerator:
             modifiers.append("default")
         kind_selected = None
         for kind in KindModel.select().where(KindModel._name.contains("Method")):
-            if checkModifiersInKind(modifiers, kind):
+            if EntityGenerator.checkModifiersInKind(modifiers, kind):
                 if not kind_selected or len(kind_selected._name) > len(kind._name):
                     kind_selected = kind
         return kind_selected
@@ -109,6 +111,7 @@ class EntityGenerator:
                 return False
         return True
 
+
 class FileEntityManager:
     """This class is for creating and updating file entity in database."""
 
@@ -118,7 +121,7 @@ class FileEntityManager:
         self.name = path.split("\\")[-1]
         self.longname = path.replace("/", "\\")
         self.contents = file_reader.read()
-        file.close()
+        file_reader.close()
 
     def get_or_creat_file_entity(self):
         """Create or get if it exists a file entity and return it according to object fields."""
@@ -139,27 +142,41 @@ class FileEntityManager:
         )
         return file_ent
 
+
 class PackageEntityManager:
     """This class is for creating and updating Package entity in database."""
 
     def __init__(self, path, file_ent):
         """Define the path to the file for finding package entity."""
         file_reader = open(path.replace("/", "\\"), mode='r')
-        antlr_manager = Project()
-        tree = antlr_manager.Parse(path)
-        contents = file_reader.read()
-        file.close()
+        self.antlr_manager = Project()
+        self.tree = self.antlr_manager.Parse(path)
+        self.contents = file_reader.read()
+        self.package_string = None
+        self.file_ent = file_ent
+        file_reader.close()
+
+    def get_or_create_package_entity(self):
+        """Create or get if it exists a package entity and return it according to object fields."""
         listener = PackageListener
-        antlr_manager.Walk(listener, tree)
+        self.antlr_manager.Walk(listener, self.tree)
         package = listener.package_data
         package_ent = EntityModel.get_or_create(
-            _kind= 73 if package['package_name'] == '' else 72,
+            _kind=73 if package['package_name'] == '' else 72,
             _name=package['package_name'],
             _longname=package['package_longname'],
-            _parent = file_ent,
-            _contents=contents)
-        file.close()
+            _parent=self.file_ent,
+            _contents=self.contents)
         self.package_string = package['package_longname']
+        return package_ent
+
+    @staticmethod
+    def get_package_entity(name, longname):
+        """get or return none for a package entity abased on its longname as address."""
+        package_ent = EntityModel.get_or_none(
+            _kind=73 if name == '' else 72,
+            _longname=longname
+        )
         return package_ent
 
 # class ParentEntityManager:
@@ -253,4 +270,3 @@ class PackageEntityManager:
 #             if modifier.lower() not in kind._name.lower():
 #                 return False
 #         return True
-
