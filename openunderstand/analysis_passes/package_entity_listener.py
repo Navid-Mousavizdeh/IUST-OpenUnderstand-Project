@@ -14,11 +14,13 @@ from openunderstand.gen.javaLabeled.JavaParserLabeled import JavaParserLabeled
 class PackageListener(JavaParserLabeledListener):
     """A listener class for detecting package"""
 
-    package_data = {
-        'package_name': '',
-        'package_longname': ''
-    }
+    def __init__(self):
+        self.package_data = None
 
     def enterPackageDeclaration(self, ctx: JavaParserLabeled.PackageDeclarationContext):
-        self.package_data['package_longname'] = ctx.getText().replace('package', '')
-        self.package_data['package_name'] = self.package_data['package_longname'].split('.')[-1]
+        print(ctx.getText().replace('package', ''))
+        print(self.package_data)
+        self.package_data = {
+            "package_name": ctx.getText().replace('package', '').split('.')[-1],
+            "package_longname": ctx.getText().replace('package', '')
+        }

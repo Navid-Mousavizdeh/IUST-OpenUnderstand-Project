@@ -20,13 +20,14 @@ from analysis_passes.declare_declarein import DeclareAndDeclareinListener
 from analysis_passes.java_modify_modifyby import ModifyModifyByListener
 from analysis_passes.java_usemodule_usemoduleby import UseModuleUseModuleByListener
 from analysis_passes.class_properties import ClassPropertiesListener, InterfacePropertiesListener
+from analysis_passes.entity_manager import EntityGenerator
 
 
 class Project:
     tree = None
 
     def Parse(self, fileAddress):
-        file_stream = FileStream(fileAddress)
+        file_stream = FileStream(fileAddress, encoding='utf8')
         lexer = JavaLexer(file_stream)
         tokens = CommonTokenStream(lexer)
         parser = JavaParserLabeled(tokens)
@@ -328,49 +329,52 @@ if __name__ == '__main__':
     # files = ["../../Java codes/javaCoupling.java"]
 
     for file_address in files:
-
+        print(file_address)
         try:
-            file_ent = p.getFileEntity(file_address)
+            # file_ent = p.getFileEntity(file_address)
             tree = p.Parse(file_address)
+            print(tree)
         except Exception as e:
             print("An Error occurred in file:" + file_address + "\n" + str(e))
             continue
 
-        try:
-            # implement
-            listener = ImplementCoupleAndImplementByCoupleBy()
-            listener.implement = []
-            p.Walk(listener, tree)
-            p.addImplementOrImplementByRefs(listener.implement, file_ent, file_address)
-        except Exception as e:
-            print("An Error occurred for reference implement/implementBy in file:" + file_address + "\n" + str(e))
+        entity_generator = EntityGenerator(file_address, tree)
+
+        # try:
+        #     # implement
+        #     listener = ImplementCoupleAndImplementByCoupleBy()
+        #     listener.implement = []
+        #     p.Walk(listener, tree)
+        #     p.addImplementOrImplementByRefs(listener.implement, file_ent, file_address)
+        # except Exception as e:
+        #     print("An Error occurred for reference implement/implementBy in file:" + file_address + "\n" + str(e))
 
         try:
             # create
-            listener = CreateAndCreateBy()
+            listener = CreateAndCreateBy(entity_generator)
             listener.create = []
             p.Walk(listener, tree)
             p.addCreateRefs(listener.create, file_ent, file_address)
         except Exception as e:
             print("An Error occurred for reference create/createBy in file:" + file_address + "\n" + str(e))
 
-        try:
-            # declare
-            listener = DeclareAndDeclareinListener()
-            listener.declare = []
-            p.Walk(listener, tree)
-            p.addDeclareRefs(listener.declare, file_ent)
-        except Exception as e:
-            print("An Error occurred for reference declare/declaredIn in file:" + file_address + "\n" + str(e))
-
-        try:
-            # modify
-            listener = ModifyModifyByListener()
-            listener.modifyBy = []
-            p.Walk(listener, tree)
-            p.addModifyRefs(listener.modifyBy, file_ent)
-        except Exception as e:
-            print("An Error occurred for reference modify/modifyBy in file:" + file_address + "\n" + str(e))
+        # try:
+        #     # declare
+        #     listener = DeclareAndDeclareinListener()
+        #     listener.declare = []
+        #     p.Walk(listener, tree)
+        #     p.addDeclareRefs(listener.declare, file_ent)
+        # except Exception as e:
+        #     print("An Error occurred for reference declare/declaredIn in file:" + file_address + "\n" + str(e))
+        #
+        # try:
+        #     # modify
+        #     listener = ModifyModifyByListener()
+        #     listener.modifyBy = []
+        #     p.Walk(listener, tree)
+        #     p.addModifyRefs(listener.modifyBy, file_ent)
+        # except Exception as e:
+        #     print("An Error occurred for reference modify/modifyBy in file:" + file_address + "\n" + str(e))
 
         # try:
         #     # useModule
