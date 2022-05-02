@@ -20,7 +20,7 @@ from analysis_passes.declare_declarein import DeclareAndDeclareinListener
 from analysis_passes.java_modify_modifyby import ModifyModifyByListener
 from analysis_passes.java_usemodule_usemoduleby import UseModuleUseModuleByListener
 from analysis_passes.class_properties import ClassPropertiesListener, InterfacePropertiesListener
-from analysis_passes.entity_manager import EntityGenerator
+from analysis_passes.entity_manager import EntityGenerator, FileEntityManager
 
 
 class Project:
@@ -323,17 +323,13 @@ if __name__ == '__main__':
     path = listToString(pathArray) + "benchmark"
     files = p.getListOfFiles(path)
 
-    print(len(files))
-
     # AGE KHASTID YEK FILE RO RUN KONID:
     # files = ["../../Java codes/javaCoupling.java"]
 
     for file_address in files:
-        print(file_address)
         try:
             # file_ent = p.getFileEntity(file_address)
             tree = p.Parse(file_address)
-            print(tree)
         except Exception as e:
             print("An Error occurred in file:" + file_address + "\n" + str(e))
             continue
@@ -349,14 +345,16 @@ if __name__ == '__main__':
         # except Exception as e:
         #     print("An Error occurred for reference implement/implementBy in file:" + file_address + "\n" + str(e))
 
-        try:
+        # try:
             # create
-            listener = CreateAndCreateBy(entity_generator)
-            listener.create = []
-            p.Walk(listener, tree)
-            p.addCreateRefs(listener.create, file_ent, file_address)
-        except Exception as e:
-            print("An Error occurred for reference create/createBy in file:" + file_address + "\n" + str(e))
+        print("len(entity_generator.package_entities_list)")
+        print(len(entity_generator.package_entities_list))
+        listener = CreateAndCreateBy(entity_generator)
+        listener.create = []
+        p.Walk(listener, tree)
+        p.addCreateRefs(listener.create, FileEntityManager.get_file_entity(file_address), file_address)
+        # except Exception as e:
+        #     print("An Error occurred for reference create/createBy in file:" + file_address + "\n" + str(e))
 
         # try:
         #     # declare

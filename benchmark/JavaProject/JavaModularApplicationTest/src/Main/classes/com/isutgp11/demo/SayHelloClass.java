@@ -28,11 +28,5 @@ public class SayHelloClass {
             N *= (M * 33);
         }
     }
-    public void saynamedModule() {
-        Module module = SayHelloClass.class.getModule();
-        System.out.println("Module: " + module);
-        System.out.println("Name: " + module.getName());
-        System.out.println("isNamed: " + module.isNamed());
-        System.out.println("Descriptor: " + module.getDescriptor());
-    }
 }
+

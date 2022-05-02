@@ -18,9 +18,9 @@ class PackageListener(JavaParserLabeledListener):
         self.package_data = None
 
     def enterPackageDeclaration(self, ctx: JavaParserLabeled.PackageDeclarationContext):
-        print(ctx.getText().replace('package', ''))
-        print(self.package_data)
-        self.package_data = {
-            "package_name": ctx.getText().replace('package', '').split('.')[-1],
-            "package_longname": ctx.getText().replace('package', '')
-        }
+        package_parts = ctx.getText().replace(';', '').replace('package', '').split('.')
+        for i in range(len(package_parts)):
+            self.package_data.append({
+                "package_name": package_parts[i],
+                "package_longname": ".".join(package_parts[:i + 1])
+            })

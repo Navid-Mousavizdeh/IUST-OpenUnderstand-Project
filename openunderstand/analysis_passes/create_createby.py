@@ -31,7 +31,8 @@ class CreateAndCreateBy(JavaParserLabeledListener):
         self.entity_manager = entity_manager_object
 
     def enterExpression4(self, ctx: JavaParserLabeled.Expression4Context):
-        parents = entity_manager.get_or_create_parent_entities(ctx)
+        print("SAAAAAAAG KASIFFFFFF")
+        parents = self.entity_manager.get_or_create_parent_entities(ctx)
 
         # if ctx.creator().classCreatorRest():
         #     allrefs = class_properties.ClassPropertiesListener.findParents(ctx)  # self.findParents(ctx)

@@ -33,9 +33,10 @@ class EntityGenerator:
         """Automatically generates all entities are required for create and createby reference."""
         file_manager = FileEntityManager(path)
         # Making entities
+        self.path = path
         self.file_ent = file_manager.get_or_creat_file_entity()
         self.package_ent = PackageEntityManager(path, self.file_ent, tree)
-        packeage_entity = self.package_ent.get_or_create_package_entity()
+        self.package_entities_list = self.package_ent.get_or_create_package_entity()
         self.package_string = self.package_ent.package_string
 
     def get_or_create_parent_entities(self, ctx):
@@ -50,13 +51,16 @@ class EntityGenerator:
                 parents.append(current)
             current = current.parentCtx
         parents_entities = list(reversed(parents))
-        for entity in parents_entities:
-            if entity.parentCtx is None:
-                parent_entity_parent = self.file_ent
+        for i in range(len(parents_entities)):
+            entity = parents_entities[i]
+            if i == 0:
+                for row in self.package_entities_list:
+                    if row[0] == self.path:
+                        parent_entity_parent = row[1]
             else:
-                parent_entity_parent = EntityModel.get_or_none(_name=entity.parentCtx.IDENTIFIER().getText(),
-                                                               _longname=(
-                                                                       self.package_string + entity.parentCtx.IDENTIFIER().getText()),
+                print("parents_entities[i - 1].IDENTIFIER().getText()", parents_entities[i - 1].IDENTIFIER().getText())
+                parent_entity_parent = EntityModel.get_or_none(_name=parents_entities[i - 1].IDENTIFIER().getText(),
+                                                               _longname="",
                                                                _contents=entity.parentCtx.getText())
             if type(current).__name__ == "MethodDeclarationContext":
                 parent_entity_name = entity.IDENTIFIER().getText()
@@ -187,6 +191,7 @@ class FileEntityManager:
     def __init__(self, path):
         """Define Name, long Name as address of file and content of it by simply passing path in __init__ method."""
         file_reader = open(path.replace("/", "\\"), mode='r')
+        self.path = path
         self.name = path.split("\\")[-1]
         self.longname = path.replace("/", "\\")
         self.contents = file_reader.read()
@@ -194,7 +199,7 @@ class FileEntityManager:
 
     def get_or_creat_file_entity(self):
         """Create or get if it exists a file entity and return it according to object fields."""
-        file_ent = EntityModel.get_or_create(
+        file_ent, success = EntityModel.get_or_create(
             _kind=FILE_KIND_ID,
             _name=self.name,
             _longname=self.longname,
@@ -228,19 +233,35 @@ class PackageEntityManager:
     def get_or_create_package_entity(self):
         """Create or get if it exists a package entity and return it according to object fields."""
         listener_class = PackageListener()
+        result = []
         listener_class.package_data = []
-        print(self.tree)
         walker = ParseTreeWalker()
         walker.walk(listener=listener_class, t=self.tree)
-        package = listener_class.package_data
-        package_ent, success = EntityModel.get_or_create(
-            _kind=73 if package['package_name'] == '' else 72,
-            _name=package['package_name'],
-            _longname=package['package_longname'],
-            _parent=self.file_ent,
-            _contents=self.contents)
-        self.package_string = package['package_longname']
-        return package_ent
+        package_data = listener_class.package_data
+        if len(package_data) != 0:
+            for i in range(len(package_data)):
+                package = package_data[i]
+                if EntityModel.get_or_none(_longname=package["package_longname"]) is None:
+                    parent_package = package_data[i - 1]
+                    longname = parent_package['package_longname'] if i > 0 else ""
+                    parent_package_entity = EntityModel.get_or_none(_longname=longname)
+                    package_ent, success = EntityModel.get_or_create(
+                        _kind=72,
+                        _name=package['package_name'],
+                        _longname=package['package_longname'],
+                        _parent=parent_package_entity)
+                    self.package_string = package['package_longname']
+                    result.append((self.path, package_ent))
+        else:
+            package_ent, success = EntityModel.get_or_create(
+                _kind=73,
+                _name="Unnamed Package",
+                _longname="Unnamed Package",
+                _parent=self.file_ent,
+                _contents=self.contents)
+            self.package_string = ""
+            result.append((self.path, package_ent))
+        return result
 
     @staticmethod
     def get_package_entity(name, longname):
