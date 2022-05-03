@@ -17,16 +17,17 @@ from oudb.fill import main
 from analysis_passes.couple_coupleby import ImplementCoupleAndImplementByCoupleBy
 from analysis_passes.create_createby import CreateAndCreateBy
 from analysis_passes.declare_declarein import DeclareAndDeclareinListener
-from analysis_passes.javaModifyBy import ModifyByListener
-from analysis_passes.javaUseModule import UseModuleListener
+from analysis_passes.java_modify_modifyby import ModifyModifyByListener
+from analysis_passes.java_usemodule_usemoduleby import UseModuleUseModuleByListener
 from analysis_passes.class_properties import ClassPropertiesListener, InterfacePropertiesListener
+from analysis_passes.entity_manager import EntityGenerator, FileEntityManager
 
 
 class Project:
     tree = None
 
     def Parse(self, fileAddress):
-        file_stream = FileStream(fileAddress)
+        file_stream = FileStream(fileAddress, encoding='utf8')
         lexer = JavaLexer(file_stream)
         tokens = CommonTokenStream(lexer)
         parser = JavaParserLabeled(tokens)
@@ -62,26 +63,32 @@ class Project:
         return file_ent
 
     def add_references(self, ref_dict, file_ent):
+        scope = EntityModel.get_or_create(_name=ref_dict['scope'])[0]
+        ent = EntityModel.get_or_create(_name=ref_dict['ent'],
+                                        _kind=154,
+                                        _longname=scope._longname + "." + ref_dict['ent'],
+                                        _parent_id=scope._id)[0]
         ref, _ = ReferenceModel.get_or_create(
             _kind=KindModel.get_or_none(_name="Java Modify")._id,
             _line=ref_dict['line'],
             _file=file_ent,
             _column=ref_dict['col'],
-            _ent="NOT FOUND",
-            _scope=EntityModel.get_or_create(_name=ref_dict['scope'])[0]._id,
+            _ent=ent._id,
+            _scope=scope._id,
         )
         inverse_ref, _ = ReferenceModel.get_or_create(
             _kind=KindModel.get_or_none(_name="Java Modifyby")._id,
             _line=ref_dict['line'],
             _file=file_ent,
             _column=ref_dict['col'],
-            _ent=EntityModel.get_or_create(_name=ref_dict['scope'])[0]._id,
-            _scope="NOT FOUND",
+            _ent=scope._id,
+            _scope=ent._id,
         )
 
     def add_module_references(self, ref_dict, file_ent, file_address):
-        EntityModel.get_or_create(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Module")._id, _longname=file_address.replace('/', '\\'))
-        ent = EntityModel.get_or_none(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Module")._id, _longname=file_address.replace('/', '\\'))
+        ent = EntityModel.get_or_create(_name=ref_dict['name'],
+                                        _kind=KindModel.get_or_none(_name="Java Module")._id,
+                                      _longname=file_address.replace('/', '\\'))
         ref, _ = ReferenceModel.get_or_create(
             _kind=KindModel.get_or_none(_name="Java ModuleUse")._id,
             _line=ref_dict['line'],
@@ -101,8 +108,10 @@ class Project:
 
     def add_unknown_module_references(self, ref_dicts, file_ent, file_address):
         for ref_dict in ref_dicts:
-            EntityModel.get_or_create(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Unknown Module")._id, _longname=file_address.replace('/', '\\'))
-            ent = EntityModel.get_or_none(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Unknown Module")._id, _longname=file_address.replace('/', '\\'))
+            ent = EntityModel.get_or_create(_name=ref_dict['name'],
+                                      _kind=KindModel.get_or_none(_name="Java Unknown Module")._id,
+                                      _longname=file_address.replace('/', '\\'))
+
             ref, _ = ReferenceModel.get_or_create(
                 _kind=KindModel.get_or_none(_name="Java ModuleUse")._id,
                 _line=ref_dict['line'],
@@ -122,8 +131,9 @@ class Project:
 
     def add_unresolved_module_references(self, ref_dicts, file_ent, file_address):
         for ref_dict in ref_dicts:
-            EntityModel.get_or_create(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Unresolved Module")._id, _longname=file_address.replace('/', '\\'))
-            ent = EntityModel.get_or_none(_name=ref_dict['name'], _kind=KindModel.get_or_none(_name="Java Unresolved Module")._id, _longname=file_address.replace('/', '\\'))
+            ent = EntityModel.get_or_create(_name=ref_dict['name'],
+                                          _kind=KindModel.get_or_none(_name="Java Unresolved Module")._id,
+                                          _longname=file_address.replace('/', '\\'))
             ref, _ = ReferenceModel.get_or_create(
                 _kind=KindModel.get_or_none(_name="Java ModuleUse")._id,
                 _line=ref_dict['line'],
@@ -140,7 +150,6 @@ class Project:
                 _ent=file_ent,
                 _scope=ent,
             )
-
 
     def addModifyRefs(self, ref_dicts, file_ent):
         for ref_dict in ref_dicts:
@@ -210,89 +219,89 @@ class Project:
                                                   _column=ref_dict["col"], _scope=scope, _ent=ent)
             Createby = ReferenceModel.get_or_create(_kind=191, _file=file_ent, _line=ref_dict["line"],
                                                     _column=ref_dict["col"], _scope=ent, _ent=scope)
-
-    def getPackageEntity(self, file_ent, name, longname):
-        # package kind id: 72
-        ent = EntityModel.get_or_create(_kind=72, _name=name, _parent=file_ent,
-                                        _longname=longname, _contents="")
-        return ent[0]
-
-    def getUnnamedPackageEntity(self, file_ent):
-        # unnamed package kind id: 73
-        ent = EntityModel.get_or_create(_kind=73, _name="(Unnamed_Package)", _parent=file_ent,
-                                        _longname="(Unnamed_Package)", _contents="")
-        return ent[0]
-
-    def getClassProperties(self, class_longname, file_address):
-        listener = ClassPropertiesListener()
-        listener.class_longname = class_longname.split(".")
-        listener.class_properties = None
-        self.Walk(listener, self.tree)
-        return listener.class_properties
-
-    def getInterfaceProperties(self, interface_longname, file_address):
-        listener = InterfacePropertiesListener()
-        listener.interface_longname = interface_longname.split(".")
-        listener.interface_properties = None
-        self.Walk(listener, self.tree)
-        return listener.interface_properties
-
-    def getCreatedClassEntity(self, class_longname, class_potential_longname, file_address):
-        props = p.getClassProperties(class_potential_longname, file_address)
-        if not props:
-            return self.getClassEntity(class_longname, file_address)
-        else:
-            return self.getClassEntity(class_potential_longname, file_address)
-
-    def getClassEntity(self, class_longname, file_address):
-        props = p.getClassProperties(class_longname, file_address)
-        if not props:  # This class is unknown, unknown class id: 84
-            ent = EntityModel.get_or_create(_kind=84, _name=class_longname.split(".")[-1],
-                                            _longname=class_longname, _contents="")
-        else:
-            if len(props["modifiers"]) == 0:
-                props["modifiers"].append("default")
-            kind = self.findKindWithKeywords("Class", props["modifiers"])
-            ent = EntityModel.get_or_create(_kind=kind, _name=props["name"],
-                                            _longname=props["longname"],
-                                            _parent=props["parent"] if props["parent"] is not None else file_ent,
-                                            _contents=props["contents"])
-        return ent[0]
-
-    def getInterfaceEntity(self, interface_longname, file_address):  # can't be of unknown kind!
-        props = p.getInterfaceProperties(interface_longname, file_address)
-        if not props:
-            return None
-        else:
-            kind = self.findKindWithKeywords("Interface", props["modifiers"])
-            ent = EntityModel.get_or_create(_kind=kind, _name=props["name"],
-                                            _longname=props["longname"],
-                                            _parent=props["parent"] if props["parent"] is not None else file_ent,
-                                            _contents=props["contents"])
-        return ent[0]
-
-    def getImplementEntity(self, longname, file_address):
-        ent = self.getInterfaceEntity(longname, file_address)
-        if not ent:
-            ent = self.getClassEntity(longname, file_address)
-        return ent
-
-    def findKindWithKeywords(self, type, modifiers):
-        if len(modifiers) == 0:
-            modifiers.append("default")
-        leastspecific_kind_selected = None
-        for kind in KindModel.select().where(KindModel._name.contains(type)):
-            if self.checkModifiersInKind(modifiers, kind):
-                if not leastspecific_kind_selected \
-                        or len(leastspecific_kind_selected._name) > len(kind._name):
-                    leastspecific_kind_selected = kind
-        return leastspecific_kind_selected
-
-    def checkModifiersInKind(self, modifiers, kind):
-        for modifier in modifiers:
-            if modifier.lower() not in kind._name.lower():
-                return False
-        return True
+    #
+    # def getPackageEntity(self, file_ent, name, longname):
+    #     # package kind id: 72
+    #     ent = EntityModel.get_or_create(_kind=72, _name=name, _parent=file_ent,
+    #                                     _longname=longname, _contents="")
+    #     return ent[0]
+    #
+    # def getUnnamedPackageEntity(self, file_ent):
+    #     # unnamed package kind id: 73
+    #     ent = EntityModel.get_or_create(_kind=73, _name="(Unnamed_Package)", _parent=file_ent,
+    #                                     _longname="(Unnamed_Package)", _contents="")
+    #     return ent[0]
+    #
+    # def getClassProperties(self, class_longname, file_address):
+    #     listener = ClassPropertiesListener()
+    #     listener.class_longname = class_longname.split(".")
+    #     listener.class_properties = None
+    #     self.Walk(listener, self.tree)
+    #     return listener.class_properties
+    #
+    # def getInterfaceProperties(self, interface_longname, file_address):
+    #     listener = InterfacePropertiesListener()
+    #     listener.interface_longname = interface_longname.split(".")
+    #     listener.interface_properties = None
+    #     self.Walk(listener, self.tree)
+    #     return listener.interface_properties
+    #
+    # def getCreatedClassEntity(self, class_longname, class_potential_longname, file_address):
+    #     props = p.getClassProperties(class_potential_longname, file_address)
+    #     if not props:
+    #         return self.getClassEntity(class_longname, file_address)
+    #     else:
+    #         return self.getClassEntity(class_potential_longname, file_address)
+    #
+    # def getClassEntity(self, class_longname, file_address):
+    #     props = p.getClassProperties(class_longname, file_address)
+    #     if not props:  # This class is unknown, unknown class id: 84
+    #         ent = EntityModel.get_or_create(_kind=84, _name=class_longname.split(".")[-1],
+    #                                         _longname=class_longname, _contents="")
+    #     else:
+    #         if len(props["modifiers"]) == 0:
+    #             props["modifiers"].append("default")
+    #         kind = self.findKindWithKeywords("Class", props["modifiers"])
+    #         ent = EntityModel.get_or_create(_kind=kind, _name=props["name"],
+    #                                         _longname=props["longname"],
+    #                                         _parent=props["parent"] if props["parent"] is not None else file_ent,
+    #                                         _contents=props["contents"])
+    #     return ent[0]
+    #
+    # def getInterfaceEntity(self, interface_longname, file_address):  # can't be of unknown kind!
+    #     props = p.getInterfaceProperties(interface_longname, file_address)
+    #     if not props:
+    #         return None
+    #     else:
+    #         kind = self.findKindWithKeywords("Interface", props["modifiers"])
+    #         ent = EntityModel.get_or_create(_kind=kind, _name=props["name"],
+    #                                         _longname=props["longname"],
+    #                                         _parent=props["parent"] if props["parent"] is not None else file_ent,
+    #                                         _contents=props["contents"])
+    #     return ent[0]
+    #
+    # def getImplementEntity(self, longname, file_address):
+    #     ent = self.getInterfaceEntity(longname, file_address)
+    #     if not ent:
+    #         ent = self.getClassEntity(longname, file_address)
+    #     return ent
+    #
+    # def findKindWithKeywords(self, type, modifiers):
+    #     if len(modifiers) == 0:
+    #         modifiers.append("default")
+    #     leastspecific_kind_selected = None
+    #     for kind in KindModel.select().where(KindModel._name.contains(type)):
+    #         if self.checkModifiersInKind(modifiers, kind):
+    #             if not leastspecific_kind_selected \
+    #                     or len(leastspecific_kind_selected._name) > len(kind._name):
+    #                 leastspecific_kind_selected = kind
+    #     return leastspecific_kind_selected
+    #
+    # def checkModifiersInKind(self, modifiers, kind):
+    #     for modifier in modifiers:
+    #         if modifier.lower() not in kind._name.lower():
+    #             return False
+    #     return True
 
 
 if __name__ == '__main__':
@@ -302,64 +311,74 @@ if __name__ == '__main__':
     main()
     db = db_open("../benchmark2_database.oudb")
 
-
     def listToString(s):
+        """a method to find projects path dynamically"""
         str1 = ""
         for ele in s[0:len(s) - 1]:
-            str1 += (ele + "/")
+            str1 += (ele + "\\")
         return str1
 
     rawPath = str(os.path.dirname(__file__).replace("\\", "/"))
     pathArray = rawPath.split('/')
-    path = listToString(pathArray) + "benchmark\calculator_app"
+    path = listToString(pathArray) + "benchmark"
     files = p.getListOfFiles(path)
-
-
 
     # AGE KHASTID YEK FILE RO RUN KONID:
     # files = ["../../Java codes/javaCoupling.java"]
 
     for file_address in files:
         try:
-            file_ent = p.getFileEntity(file_address)
+            # file_ent = p.getFileEntity(file_address)
             tree = p.Parse(file_address)
         except Exception as e:
             print("An Error occurred in file:" + file_address + "\n" + str(e))
             continue
-        try:
-            # implement
-            listener = ImplementCoupleAndImplementByCoupleBy()
-            listener.implement = []
-            p.Walk(listener, tree)
-            p.addImplementOrImplementByRefs(listener.implement, file_ent, file_address)
-        except Exception as e:
-            print("An Error occurred for reference implement in file:" + file_address + "\n" + str(e))
-        try:
-            # create
-            listener = CreateAndCreateBy()
-            listener.create = []
-            p.Walk(listener, tree)
-            p.addCreateRefs(listener.create, file_ent, file_address)
-        except Exception as e:
-            print("An Error occurred for reference create in file:" + file_address + "\n" + str(e))
-        try:
-            # declare
-            # importing_entity = add_java_file_entity(file_path, file_name)
-            listener = ModifyByListener()
-            listener.modifyBy = []
-            p.Walk(listener, tree)
-            p.addModifyRefs(listener.modifyBy, file_ent)
-        except Exception as e:
-            print("An Error occurred for reference declare in file:" + file_address + "\n" + str(e))
 
-        try:
-            # declare
-            # importing_entity = add_java_file_entity(file_path, file_name)
-            listener = UseModuleListener()
-            listener.useModules = []
-            p.Walk(listener, tree)
-            p.addModuleRefs(listener.useModules, file_ent, file_address)
-            p.add_unknown_module_references(listener.useUnknownModules, file_ent, file_address)
-            p.add_unresolved_module_references(listener.useUnresolvedModules, file_ent, file_address)
-        except Exception as e:
-            print("An Error occurred for reference declare in file:" + file_address + "\n" + str(e))
+        entity_generator = EntityGenerator(file_address, tree)
+
+        # try:
+        #     # implement
+        #     listener = ImplementCoupleAndImplementByCoupleBy()
+        #     listener.implement = []
+        #     p.Walk(listener, tree)
+        #     p.addImplementOrImplementByRefs(listener.implement, file_ent, file_address)
+        # except Exception as e:
+        #     print("An Error occurred for reference implement/implementBy in file:" + file_address + "\n" + str(e))
+
+        # try:
+            # create
+        listener = CreateAndCreateBy(entity_generator)
+        listener.create = []
+        p.Walk(listener, tree)
+        p.addCreateRefs(listener.create, FileEntityManager.get_file_entity(file_address), file_address)
+        # except Exception as e:
+        #     print("An Error occurred for reference create/createBy in file:" + file_address + "\n" + str(e))
+
+        # try:
+        #     # declare
+        #     listener = DeclareAndDeclareinListener()
+        #     listener.declare = []
+        #     p.Walk(listener, tree)
+        #     p.addDeclareRefs(listener.declare, file_ent)
+        # except Exception as e:
+        #     print("An Error occurred for reference declare/declaredIn in file:" + file_address + "\n" + str(e))
+        #
+        # try:
+        #     # modify
+        #     listener = ModifyModifyByListener()
+        #     listener.modifyBy = []
+        #     p.Walk(listener, tree)
+        #     p.addModifyRefs(listener.modifyBy, file_ent)
+        # except Exception as e:
+        #     print("An Error occurred for reference modify/modifyBy in file:" + file_address + "\n" + str(e))
+
+        # try:
+        #     # useModule
+        #     listener = UseModuleUseModuleByListener()
+        #     listener.useModules = []
+        #     p.Walk(listener, tree)
+        #     p.addModuleRefs(listener.useModules, file_ent, file_address)
+        #     p.add_unknown_module_references(listener.useUnknownModules, file_ent, file_address)
+        #     p.add_unresolved_module_references(listener.useUnresolvedModules, file_ent, file_address)
+        # except Exception as e:
+        #     print("An Error occurred for reference useModule/useModuleBy in file:" + file_address + "\n" + str(e))

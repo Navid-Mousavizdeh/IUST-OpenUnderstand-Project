@@ -1,74 +1,58 @@
+"""This module is for create, Read of entities of different kinds in project,
 
-
-#expression -> NEW creator
-
-
+in this module there are many classes for each individual entity as follows:
+    1. File
+    2. Package
+    3. Parent Entities:
+        Class
+        Method
+        Interface
 """
-## Description
-This module find all OpenUnderstand call and callby references in a Java project
 
-
-## References
-
-
-"""
+__author__ = "Navid Mousavizadeh, Amir Mohammad Sohrabi, Sara Younesi, Deniz Ahmadi"
+__copyright__ = "Copyright 2022, The OpenUnderstand Project, Iran University of Science and technology"
+__credits__ = ["Dr.Parsa", "Dr.Zakeri", "Mehdi Razavi", "Navid Mousavizadeh", "Amir Mohammad Sohrabi", "Sara Younesi",
+               "Deniz Ahmadi"]
+__license__ = "GPL"
+__version__ = "1.0.0"
 
 __author__ = 'Shaghayegh Mobasher , Setayesh kouloubandi ,Parisa Alaie'
 __version__ = '0.1.0'
 
 from openunderstand.gen.javaLabeled.JavaParserLabeledListener import JavaParserLabeledListener
 from openunderstand.gen.javaLabeled.JavaParserLabeled import JavaParserLabeled
-import openunderstand.analysis_passes.class_properties as class_properties
+from openunderstand.analysis_passes.entity_manager import EntityGenerator
+
 
 class CreateAndCreateBy(JavaParserLabeledListener):
-
-    def findmethodreturntype(self, c):
-        parents = ""
-        context = ""
-        current = c
-        while current is not None:
-            if type(current.parentCtx).__name__ == "MethodDeclarationContext":
-                parents=(current.parentCtx.typeTypeOrVoid().getText())
-                context=current.parentCtx.getText()
-                break
-            current = current.parentCtx
-
-        return parents,context
-
-    def findmethodacess(self, c):
-        parents = ""
-        modifiers=[]
-        current = c
-        while current is not None:
-            if "ClassBodyDeclaration" in type(current.parentCtx).__name__:
-                parents=(current.parentCtx.modifier())
-                break
-            current = current.parentCtx
-        for x in parents:
-            if x.classOrInterfaceModifier():
-                modifiers.append(x.classOrInterfaceModifier().getText())
-        return modifiers
-
-
     create = []
 
-    def enterExpression4(self, ctx:JavaParserLabeled.Expression4Context):
-        modifiers=self.findmethodacess(ctx)
-        mothodedreturn,methodcontext=self.findmethodreturntype(ctx)
+    def __init__(self, entity_manager_object):
+        self.entity_manager = entity_manager_object
+        self.parents = []
 
-        if ctx.creator().classCreatorRest():
-            allrefs= class_properties.ClassPropertiesListener.findParents(ctx)  #self.findParents(ctx)
-            refent=allrefs[-1]
-            entlongname=".".join(allrefs)
-            [line, col] = str(ctx.start).split(",")[3].split(":")
+    def enterMethodDeclaration(self, ctx: JavaParserLabeled.MethodDeclarationContext):
+        self.parents = self.parents + self.entity_manager.get_or_create_parent_entities(ctx)
 
-            self.create.append({"scopename":refent,"scopelongname":entlongname,"scopemodifiers":modifiers,
-                                "scopereturntype":mothodedreturn,"scopecontent":methodcontext,
-                                "line":line,"col":col[:-1],"refent":ctx.creator().createdName().getText(),
-                                "scope_parent": allrefs[-2] if len(allrefs) > 2 else None,
-                                "potential_refent":".".join(allrefs[:-1]) + "." + ctx.creator().createdName().getText()})
+    def enterClassDeclaration(self, ctx:JavaParserLabeled.ClassDeclarationContext):
+        self.parents = self.parents + self.entity_manager.get_or_create_parent_entities(ctx)
 
+    def enterInterfaceDeclaration(self, ctx:JavaParserLabeled.InterfaceDeclarationContext):
+        self.parents = self.parents + self.entity_manager.get_or_create_parent_entities(ctx)
 
+    def enterExpression4(self, ctx: JavaParserLabeled.Expression4Context):
+        print(1)
+        # parents = self.entity_manager.get_or_create_parent_entities(ctx)
 
-
-
+        # if ctx.creator().classCreatorRest():
+        #     allrefs = class_properties.ClassPropertiesListener.findParents(ctx)  # self.findParents(ctx)
+        #     refent = allrefs[-1]
+        #     entlongname = ".".join(allrefs)
+        #     [line, col] = str(ctx.start).split(",")[3].split(":")
+        #
+        #     self.create.append({"scopename": refent, "scopelongname": entlongname, "scopemodifiers": modifiers,
+        #                         "scopereturntype": mothodedreturn, "scopecontent": methodcontext,
+        #                         "line": line, "col": col[:-1], "refent": ctx.creator().createdName().getText(),
+        #                         "scope_parent": allrefs[-2] if len(allrefs) > 2 else None,
+        #                         "potential_refent": ".".join(
+        #                             allrefs[:-1]) + "." + ctx.creator().createdName().getText()})
