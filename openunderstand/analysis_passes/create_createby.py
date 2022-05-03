@@ -29,10 +29,20 @@ class CreateAndCreateBy(JavaParserLabeledListener):
 
     def __init__(self, entity_manager_object):
         self.entity_manager = entity_manager_object
+        self.parents = []
+
+    def enterMethodDeclaration(self, ctx: JavaParserLabeled.MethodDeclarationContext):
+        self.parents = self.parents + self.entity_manager.get_or_create_parent_entities(ctx)
+
+    def enterClassDeclaration(self, ctx:JavaParserLabeled.ClassDeclarationContext):
+        self.parents = self.parents + self.entity_manager.get_or_create_parent_entities(ctx)
+
+    def enterInterfaceDeclaration(self, ctx:JavaParserLabeled.InterfaceDeclarationContext):
+        self.parents = self.parents + self.entity_manager.get_or_create_parent_entities(ctx)
 
     def enterExpression4(self, ctx: JavaParserLabeled.Expression4Context):
-        print("SAAAAAAAG KASIFFFFFF")
-        parents = self.entity_manager.get_or_create_parent_entities(ctx)
+        print(1)
+        # parents = self.entity_manager.get_or_create_parent_entities(ctx)
 
         # if ctx.creator().classCreatorRest():
         #     allrefs = class_properties.ClassPropertiesListener.findParents(ctx)  # self.findParents(ctx)

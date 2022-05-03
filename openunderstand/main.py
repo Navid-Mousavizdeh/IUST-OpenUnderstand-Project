@@ -219,89 +219,89 @@ class Project:
                                                   _column=ref_dict["col"], _scope=scope, _ent=ent)
             Createby = ReferenceModel.get_or_create(_kind=191, _file=file_ent, _line=ref_dict["line"],
                                                     _column=ref_dict["col"], _scope=ent, _ent=scope)
-
-    def getPackageEntity(self, file_ent, name, longname):
-        # package kind id: 72
-        ent = EntityModel.get_or_create(_kind=72, _name=name, _parent=file_ent,
-                                        _longname=longname, _contents="")
-        return ent[0]
-
-    def getUnnamedPackageEntity(self, file_ent):
-        # unnamed package kind id: 73
-        ent = EntityModel.get_or_create(_kind=73, _name="(Unnamed_Package)", _parent=file_ent,
-                                        _longname="(Unnamed_Package)", _contents="")
-        return ent[0]
-
-    def getClassProperties(self, class_longname, file_address):
-        listener = ClassPropertiesListener()
-        listener.class_longname = class_longname.split(".")
-        listener.class_properties = None
-        self.Walk(listener, self.tree)
-        return listener.class_properties
-
-    def getInterfaceProperties(self, interface_longname, file_address):
-        listener = InterfacePropertiesListener()
-        listener.interface_longname = interface_longname.split(".")
-        listener.interface_properties = None
-        self.Walk(listener, self.tree)
-        return listener.interface_properties
-
-    def getCreatedClassEntity(self, class_longname, class_potential_longname, file_address):
-        props = p.getClassProperties(class_potential_longname, file_address)
-        if not props:
-            return self.getClassEntity(class_longname, file_address)
-        else:
-            return self.getClassEntity(class_potential_longname, file_address)
-
-    def getClassEntity(self, class_longname, file_address):
-        props = p.getClassProperties(class_longname, file_address)
-        if not props:  # This class is unknown, unknown class id: 84
-            ent = EntityModel.get_or_create(_kind=84, _name=class_longname.split(".")[-1],
-                                            _longname=class_longname, _contents="")
-        else:
-            if len(props["modifiers"]) == 0:
-                props["modifiers"].append("default")
-            kind = self.findKindWithKeywords("Class", props["modifiers"])
-            ent = EntityModel.get_or_create(_kind=kind, _name=props["name"],
-                                            _longname=props["longname"],
-                                            _parent=props["parent"] if props["parent"] is not None else file_ent,
-                                            _contents=props["contents"])
-        return ent[0]
-
-    def getInterfaceEntity(self, interface_longname, file_address):  # can't be of unknown kind!
-        props = p.getInterfaceProperties(interface_longname, file_address)
-        if not props:
-            return None
-        else:
-            kind = self.findKindWithKeywords("Interface", props["modifiers"])
-            ent = EntityModel.get_or_create(_kind=kind, _name=props["name"],
-                                            _longname=props["longname"],
-                                            _parent=props["parent"] if props["parent"] is not None else file_ent,
-                                            _contents=props["contents"])
-        return ent[0]
-
-    def getImplementEntity(self, longname, file_address):
-        ent = self.getInterfaceEntity(longname, file_address)
-        if not ent:
-            ent = self.getClassEntity(longname, file_address)
-        return ent
-
-    def findKindWithKeywords(self, type, modifiers):
-        if len(modifiers) == 0:
-            modifiers.append("default")
-        leastspecific_kind_selected = None
-        for kind in KindModel.select().where(KindModel._name.contains(type)):
-            if self.checkModifiersInKind(modifiers, kind):
-                if not leastspecific_kind_selected \
-                        or len(leastspecific_kind_selected._name) > len(kind._name):
-                    leastspecific_kind_selected = kind
-        return leastspecific_kind_selected
-
-    def checkModifiersInKind(self, modifiers, kind):
-        for modifier in modifiers:
-            if modifier.lower() not in kind._name.lower():
-                return False
-        return True
+    #
+    # def getPackageEntity(self, file_ent, name, longname):
+    #     # package kind id: 72
+    #     ent = EntityModel.get_or_create(_kind=72, _name=name, _parent=file_ent,
+    #                                     _longname=longname, _contents="")
+    #     return ent[0]
+    #
+    # def getUnnamedPackageEntity(self, file_ent):
+    #     # unnamed package kind id: 73
+    #     ent = EntityModel.get_or_create(_kind=73, _name="(Unnamed_Package)", _parent=file_ent,
+    #                                     _longname="(Unnamed_Package)", _contents="")
+    #     return ent[0]
+    #
+    # def getClassProperties(self, class_longname, file_address):
+    #     listener = ClassPropertiesListener()
+    #     listener.class_longname = class_longname.split(".")
+    #     listener.class_properties = None
+    #     self.Walk(listener, self.tree)
+    #     return listener.class_properties
+    #
+    # def getInterfaceProperties(self, interface_longname, file_address):
+    #     listener = InterfacePropertiesListener()
+    #     listener.interface_longname = interface_longname.split(".")
+    #     listener.interface_properties = None
+    #     self.Walk(listener, self.tree)
+    #     return listener.interface_properties
+    #
+    # def getCreatedClassEntity(self, class_longname, class_potential_longname, file_address):
+    #     props = p.getClassProperties(class_potential_longname, file_address)
+    #     if not props:
+    #         return self.getClassEntity(class_longname, file_address)
+    #     else:
+    #         return self.getClassEntity(class_potential_longname, file_address)
+    #
+    # def getClassEntity(self, class_longname, file_address):
+    #     props = p.getClassProperties(class_longname, file_address)
+    #     if not props:  # This class is unknown, unknown class id: 84
+    #         ent = EntityModel.get_or_create(_kind=84, _name=class_longname.split(".")[-1],
+    #                                         _longname=class_longname, _contents="")
+    #     else:
+    #         if len(props["modifiers"]) == 0:
+    #             props["modifiers"].append("default")
+    #         kind = self.findKindWithKeywords("Class", props["modifiers"])
+    #         ent = EntityModel.get_or_create(_kind=kind, _name=props["name"],
+    #                                         _longname=props["longname"],
+    #                                         _parent=props["parent"] if props["parent"] is not None else file_ent,
+    #                                         _contents=props["contents"])
+    #     return ent[0]
+    #
+    # def getInterfaceEntity(self, interface_longname, file_address):  # can't be of unknown kind!
+    #     props = p.getInterfaceProperties(interface_longname, file_address)
+    #     if not props:
+    #         return None
+    #     else:
+    #         kind = self.findKindWithKeywords("Interface", props["modifiers"])
+    #         ent = EntityModel.get_or_create(_kind=kind, _name=props["name"],
+    #                                         _longname=props["longname"],
+    #                                         _parent=props["parent"] if props["parent"] is not None else file_ent,
+    #                                         _contents=props["contents"])
+    #     return ent[0]
+    #
+    # def getImplementEntity(self, longname, file_address):
+    #     ent = self.getInterfaceEntity(longname, file_address)
+    #     if not ent:
+    #         ent = self.getClassEntity(longname, file_address)
+    #     return ent
+    #
+    # def findKindWithKeywords(self, type, modifiers):
+    #     if len(modifiers) == 0:
+    #         modifiers.append("default")
+    #     leastspecific_kind_selected = None
+    #     for kind in KindModel.select().where(KindModel._name.contains(type)):
+    #         if self.checkModifiersInKind(modifiers, kind):
+    #             if not leastspecific_kind_selected \
+    #                     or len(leastspecific_kind_selected._name) > len(kind._name):
+    #                 leastspecific_kind_selected = kind
+    #     return leastspecific_kind_selected
+    #
+    # def checkModifiersInKind(self, modifiers, kind):
+    #     for modifier in modifiers:
+    #         if modifier.lower() not in kind._name.lower():
+    #             return False
+    #     return True
 
 
 if __name__ == '__main__':
@@ -347,8 +347,6 @@ if __name__ == '__main__':
 
         # try:
             # create
-        print("len(entity_generator.package_entities_list)")
-        print(len(entity_generator.package_entities_list))
         listener = CreateAndCreateBy(entity_generator)
         listener.create = []
         p.Walk(listener, tree)

@@ -22,10 +22,10 @@ from gen.javaLabeled.JavaParserLabeled import JavaParserLabeled
 from gen.javaLabeled.JavaLexer import JavaLexer
 # Listeners
 from analysis_passes.package_entity_listener import PackageListener
+from analysis_passes.class_properties import ClassPropertiesListener, InterfacePropertiesListener
 
 # Constants
 FILE_KIND_ID = 1
-
 
 
 class EntityGenerator:
@@ -34,6 +34,7 @@ class EntityGenerator:
         file_manager = FileEntityManager(path)
         # Making entities
         self.path = path
+        self.tree = tree
         self.file_ent = file_manager.get_or_creat_file_entity()
         self.package_ent = PackageEntityManager(path, self.file_ent, tree)
         self.package_entities_list = self.package_ent.get_or_create_package_entity()
@@ -51,23 +52,21 @@ class EntityGenerator:
                 parents.append(current)
             current = current.parentCtx
         parents_entities = list(reversed(parents))
-        for i in range(len(parents_entities)):
+        for i in range(len(parents_entities) - 1):
             entity = parents_entities[i]
             if i == 0:
                 for row in self.package_entities_list:
                     if row[0] == self.path:
                         parent_entity_parent = row[1]
+                        self.package_string = row[2]
             else:
-                print("parents_entities[i - 1].IDENTIFIER().getText()", parents_entities[i - 1].IDENTIFIER().getText())
-                parent_entity_parent = EntityModel.get_or_none(_name=parents_entities[i - 1].IDENTIFIER().getText(),
-                                                               _longname="",
-                                                               _contents=entity.parentCtx.getText())
-            if type(current).__name__ == "MethodDeclarationContext":
+                parent_entity_parent = EntityModel.get_or_none(_longname=self.package_string)
+            if type(entity).__name__ == "MethodDeclarationContext":
                 parent_entity_name = entity.IDENTIFIER().getText()
-                parent_entity_longname = self.package_string + entity.IDENTIFIER().getText()
-                self.package_string = self.package_string + entity.IDENTIFIER().getText()
+                parent_entity_longname = self.package_string + "." + entity.IDENTIFIER().getText()
+                self.package_string = self.package_string + "." + entity.IDENTIFIER().getText()
                 parent_entity_contents = entity.getText()
-                parent_entity_type = current.parentCtx.typeTypeOrVoid().getText()
+                parent_entity_type = entity.typeTypeOrVoid().getText()
                 method_modifiers = self.get_method_accessor(entity)
                 parent_entity_kind = self.get_method_kind(method_modifiers)
                 method_ent = EntityModel.get_or_create(
@@ -78,34 +77,34 @@ class EntityGenerator:
                     _type=parent_entity_type,
                     _contents=parent_entity_contents)
                 result_entities.append((parent_entity_kind, method_ent))
-            if type(current).__name__ == "ClassDeclarationContext":
+            if type(entity).__name__ == "ClassDeclarationContext":
                 parent_entity_name = entity.IDENTIFIER().getText()
-                parent_entity_longname = self.package_string + entity.IDENTIFIER().getText()
-                self.package_string = self.package_string + entity.IDENTIFIER().getText()
+                parent_entity_longname = self.package_string + "." + entity.IDENTIFIER().getText()
+                self.package_string = self.package_string + "." + entity.IDENTIFIER().getText()
                 parent_entity_contents = entity.getText()
-                class_modifiers = self.get_class_accessor(entity)
-                parent_entity_kind = self.get_class_kind(class_modifiers)
-                method_ent = EntityModel.get_or_create(
+                props = self.getClassProperties(parent_entity_longname)
+                parent_entity_kind = self.findKindWithKeywords("Class", props["modifiers"])
+                class_ent = EntityModel.get_or_create(
                     _kind=parent_entity_kind,
                     _parent=parent_entity_parent,
                     _name=parent_entity_name,
                     _longname=parent_entity_longname,
                     _contents=parent_entity_contents)
-                result_entities.append((parent_entity_kind, method_ent))
-            if type(current).__name__ == "InterfaceDeclarationContext":
+                result_entities.append((parent_entity_kind, class_ent))
+            if type(entity).__name__ == "InterfaceDeclarationContext":
                 parent_entity_name = entity.IDENTIFIER().getText()
-                parent_entity_longname = self.package_string + entity.IDENTIFIER().getText()
-                self.package_string = self.package_string + entity.IDENTIFIER().getText()
+                parent_entity_longname = self.package_string + "." + entity.IDENTIFIER().getText()
+                self.package_string = self.package_string + "." + entity.IDENTIFIER().getText()
                 parent_entity_contents = entity.getText()
-                interface_modifiers = self.get_class_accessor(entity)
-                parent_entity_kind = self.get_interface_kind(interface_modifiers)
-                method_ent = EntityModel.get_or_create(
+                props = p.getInterfaceProperties(parent_entity_longname, self.path)
+                parent_entity_kind = self.findKindWithKeywords("Class", props["modifiers"])
+                Interface_ent = EntityModel.get_or_create(
                     _kind=parent_entity_kind,
                     _parent=parent_entity_parent,
                     _name=parent_entity_name,
                     _longname=parent_entity_longname,
                     _contents=parent_entity_contents)
-                result_entities.append((parent_entity_kind, method_ent))
+                result_entities.append((parent_entity_kind, Interface_ent))
         return result_entities
 
     @staticmethod
@@ -124,60 +123,86 @@ class EntityGenerator:
                 modifiers.append(x.classOrInterfaceModifier().getText())
         return modifiers
 
-    @staticmethod
-    def get_class_accessor(ctx):
-        """will find the access level of parent method by passing the ctx."""
-        parents = ""
-        modifiers = []
-        current = ctx
-        while current is not None:
-            if "TypeDeclaration" in type(current.parentCtx).__name__:
-                parents = (current.parentCtx.modifier())
-                break
-            current = current.parentCtx
-        for x in parents:
-            if x.classOrInterfaceModifier():
-                modifiers.append(x.classOrInterfaceModifier().getText())
-        return modifiers
-
-    @staticmethod
-    def get_method_kind(modifiers):
+    def get_method_kind(self, modifiers):
         """Return the kind ID based on the modifier"""
+        if '@Override' in modifiers:
+            modifiers.remove('@Override')
         if len(modifiers) == 0:
             modifiers.append("default")
         kind_selected = None
         for kind in KindModel.select().where(KindModel._name.contains("Method")):
-            if EntityGenerator.checkModifiersInKind(modifiers, kind):
+            if self.checkModifiersInKind(modifiers, kind):
                 if not kind_selected or len(kind_selected._name) > len(kind._name):
                     kind_selected = kind
         return kind_selected
 
-    @staticmethod
-    def get_class_kind(modifiers):
-        """Return the kind ID based on the modifier"""
+    def getClassProperties(self, class_longname):
+        listener = ClassPropertiesListener()
+        listener.class_longname = class_longname.split(".")
+        listener.class_properties = None
+        walker = ParseTreeWalker()
+        walker.walk(listener=listener, t=self.tree)
+        return listener.class_properties
+
+    def getInterfaceProperties(self, interface_longname):
+        listener = InterfacePropertiesListener()
+        listener.interface_longname = interface_longname.split(".")
+        walker = ParseTreeWalker()
+        walker.walk(listener=listener, t=self.tree)
+        return listener.interface_properties
+
+    def getCreatedClassEntity(self, class_longname, class_potential_longname, file_address):
+        props = p.getClassProperties(class_potential_longname, file_address)
+        if not props:
+            return self.getClassEntity(class_longname, file_address)
+        else:
+            return self.getClassEntity(class_potential_longname, file_address)
+
+    def getClassEntity(self, class_longname, file_address):
+        props = p.getClassProperties(class_longname, file_address)
+        if not props:  # This class is unknown, unknown class id: 84
+            ent = EntityModel.get_or_create(_kind=84, _name=class_longname.split(".")[-1],
+                                            _longname=class_longname, _contents="")
+        else:
+            if len(props["modifiers"]) == 0:
+                props["modifiers"].append("default")
+            kind = self.findKindWithKeywords("Class", props["modifiers"])
+            ent = EntityModel.get_or_create(_kind=kind, _name=props["name"],
+                                            _longname=props["longname"],
+                                            _parent=props["parent"] if props["parent"] is not None else file_ent,
+                                            _contents=props["contents"])
+        return ent[0]
+
+    def getInterfaceEntity(self, interface_longname, file_address):  # can't be of unknown kind!
+        props = p.getInterfaceProperties(interface_longname, file_address)
+        if not props:
+            return None
+        else:
+            kind = self.findKindWithKeywords("Interface", props["modifiers"])
+            ent = EntityModel.get_or_create(_kind=kind, _name=props["name"],
+                                            _longname=props["longname"],
+                                            _parent=props["parent"] if props["parent"] is not None else file_ent,
+                                            _contents=props["contents"])
+        return ent[0]
+
+    def getImplementEntity(self, longname, file_address):
+        ent = self.getInterfaceEntity(longname, file_address)
+        if not ent:
+            ent = self.getClassEntity(longname, file_address)
+        return ent
+
+    def findKindWithKeywords(self, entity_type, modifiers):
         if len(modifiers) == 0:
             modifiers.append("default")
-        kind_selected = None
-        for kind in KindModel.select().where(KindModel._name.contains("Class")):
-            if EntityGenerator.checkModifiersInKind(modifiers, kind):
-                if not kind_selected or len(kind_selected._name) > len(kind._name):
-                    kind_selected = kind
-        return kind_selected
+        leastspecific_kind_selected = None
+        for kind in KindModel.select().where(KindModel._name.contains(entity_type)):
+            if self.checkModifiersInKind(modifiers, kind):
+                if not leastspecific_kind_selected \
+                        or len(leastspecific_kind_selected._name) > len(kind._name):
+                    leastspecific_kind_selected = kind
+        return leastspecific_kind_selected
 
-    @staticmethod
-    def get_interface_kind(modifiers):
-        """Return the kind ID based on the modifier"""
-        if len(modifiers) == 0:
-            modifiers.append("default")
-        kind_selected = None
-        for kind in KindModel.select().where(KindModel._name.contains("Interface")):
-            if EntityGenerator.checkModifiersInKind(modifiers, kind):
-                if not kind_selected or len(kind_selected._name) > len(kind._name):
-                    kind_selected = kind
-        return kind_selected
-
-    @staticmethod
-    def checkModifiersInKind(modifiers, kind):
+    def checkModifiersInKind(self, modifiers, kind):
         """check if modifier is in kind and return it"""
         for modifier in modifiers:
             if modifier.lower() not in kind._name.lower():
@@ -251,7 +276,10 @@ class PackageEntityManager:
                         _longname=package['package_longname'],
                         _parent=parent_package_entity)
                     self.package_string = package['package_longname']
-                    result.append((self.path, package_ent))
+                    result.append((self.path, package_ent, package['package_longname']))
+                else:
+                    package_ent = EntityModel.get_or_none(_longname=package["package_longname"])
+                    result.append((self.path, package_ent, package['package_longname']))
         else:
             package_ent, success = EntityModel.get_or_create(
                 _kind=73,
@@ -260,7 +288,7 @@ class PackageEntityManager:
                 _parent=self.file_ent,
                 _contents=self.contents)
             self.package_string = ""
-            result.append((self.path, package_ent))
+            result.append((self.path, package_ent, ""))
         return result
 
     @staticmethod
@@ -272,94 +300,3 @@ class PackageEntityManager:
         )
         return package_ent
 
-# class ParentEntityManager:
-#     """This class is for creating and updating Method entity in database."""
-#
-#     def __init__(self, ctx, path):
-#         """Define Name, long Name as package that this method is in file, content of it and also its modifier and
-#         accessor by simply passing the ctx to __init__ method."""
-#         method_type = self.get_parent_method_type(ctx)
-#         method_access = self.get_parent_method_accessor(ctx)
-#         method_content = self.get_parent_method_contents(ctx)
-#         method_name, parent = self.get_parent_names()
-#         self.path = path
-#         self.kind = self.get_method_kind(method_access)
-#         self.parent = 1
-#         self.name = method_name
-#         self.longname = 1
-#         self.type = method_type
-#         self.contents = method_content
-#
-#     @staticmethod
-#     def get_parent_names(ctx):
-#         parents = []
-#         entities = []
-#         current = ctx
-#         while current is not None:
-#             if type(current).__name__ == "ClassDeclarationContext" or type(current).__name__ == "MethodDeclarationContext" or type(current).__name__ == "InterfaceDeclarationContext":
-#                 parents.append(current.IDENTIFIER().getText())
-#             current = current.parentCtx
-#         parents_list = list(reversed(parents))
-#         return parents_list[-1], ".".join(parents_list)
-#
-#
-#
-#
-#     @staticmethod
-#     def get_parent_method_type(ctx):
-#         """will find the type of parent method by passing the ctx."""
-#         method_type = ""
-#         current = ctx
-#         while current is not None:
-#             if type(current.parentCtx).__name__ == "MethodDeclarationContext":
-#
-#                 break
-#             current = current.parentCtx
-#         return method_type
-#
-#     @staticmethod
-#     def get_parent_method_contents(ctx):
-#         """will find the content of parent method by passing the ctx."""
-#         method_contents = ""
-#         current = ctx
-#         while current is not None:
-#             if type(current.parentCtx).__name__ == "MethodDeclarationContext":
-#                 method_contents = current.parentCtx.getText()
-#                 break
-#             current = current.parentCtx
-#         return method_contents
-#
-#     @staticmethod
-#     def get_parent_method_accessor(ctx):
-#         """will find the access level of parent method by passing the ctx."""
-#         parents = ""
-#         modifiers = []
-#         current = ctx
-#         while current is not None:
-#             if "ClassBodyDeclaration" in type(current.parentCtx).__name__:
-#                 parents = (current.parentCtx.modifier())
-#                 break
-#             current = current.parentCtx
-#         for x in parents:
-#             if x.classOrInterfaceModifier():
-#                 modifiers.append(x.classOrInterfaceModifier().getText())
-#         return modifiers
-#
-#     @staticmethod
-#     def get_method_kind(modifiers):
-#         """Return the kind ID based on the modifier"""
-#         if len(modifiers) == 0:
-#             modifiers.append("default")
-#         kind_selected = None
-#         for kind in KindModel.select().where(KindModel._name.contains("Method")):
-#             if checkModifiersInKind(modifiers, kind):
-#                 if not kind_selected or len(kind_selected._name) > len(kind._name):
-#                     kind_selected = kind
-#         return kind_selected
-#
-#     @staticmethod
-#     def checkModifiersInKind(modifiers, kind):
-#         for modifier in modifiers:
-#             if modifier.lower() not in kind._name.lower():
-#                 return False
-#         return True
