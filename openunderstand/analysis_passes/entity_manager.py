@@ -1,5 +1,4 @@
 """This module is for create, Read of entities of different kinds in project,
-
 in this module there are many classes for each individual entity as follows:
     1. File
     2. Package
@@ -26,6 +25,13 @@ from analysis_passes.class_properties import ClassPropertiesListener, InterfaceP
 
 # Constants
 FILE_KIND_ID = 1
+
+
+def get_created_entity(name):
+    entity = EntityModel.get_or_none(_name=name)
+    if entity is None:
+        raise Exception("No entity found with this name.")
+    return entity
 
 
 class EntityGenerator:
@@ -299,4 +305,3 @@ class PackageEntityManager:
             _longname=longname
         )
         return package_ent
-
