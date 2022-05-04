@@ -34,9 +34,17 @@ def get_created_entity(name):
     return entity
 
 
+def checkModifiersInKind(modifiers, kind):
+    """check if modifier is in kind and return it"""
+    for modifier in modifiers:
+        if modifier.lower() not in kind._name.lower():
+            return False
+    return True
+
+
 class EntityGenerator:
     def __init__(self, path, tree):
-        """Automatically generates all entities are required for create and createby reference."""
+        """Automatically generates all entities are required for create and createBy reference."""
         file_manager = FileEntityManager(path)
         # Making entities
         self.path = path
@@ -45,6 +53,24 @@ class EntityGenerator:
         self.package_ent = PackageEntityManager(path, self.file_ent, tree)
         self.package_entities_list = self.package_ent.get_or_create_package_entity()
         self.package_string = self.package_ent.package_string
+
+    def get_or_create_variable_entity(self, res_dict):
+        _name = res_dict['name']
+        modifiers = res_dict['modifiers']
+        print(modifiers)
+        _kind = self.get_variable_kind(modifiers) if modifiers is not None else 168
+        _type = res_dict['type']
+        _value = res_dict['value']
+        _parent = EntityModel.get_or_none(_longname=res_dict['parent_longname'])
+        _longname = _parent._longname + '.' + _name
+        EntityModel.get_or_create(
+            _kind=_kind,
+            _parent=_parent,
+            _name=_name,
+            _value=_value,
+            _longname=_longname,
+            _type=_type,
+            _contents="")
 
     def get_or_create_parent_entities(self, ctx):
         """Make all parents entities for create and createby reference."""
@@ -74,7 +100,7 @@ class EntityGenerator:
                 parent_entity_contents = entity.getText()
                 parent_entity_type = entity.typeTypeOrVoid().getText()
                 method_modifiers = self.get_method_accessor(entity)
-                print(method_modifiers)
+                # print(method_modifiers)
                 parent_entity_kind = self.get_method_kind(method_modifiers)
                 method_ent = EntityModel.get_or_create(
                     _kind=parent_entity_kind,
@@ -130,6 +156,17 @@ class EntityGenerator:
                 modifiers.append(x.classOrInterfaceModifier().getText())
         return modifiers
 
+    def get_variable_kind(self, modifiers):
+        if 'public' not in modifiers and 'private' not in modifiers and 'protected' not in modifiers and 'local' not in modifiers:
+            modifiers.append("default")
+        kind_selected = None
+        for kind in KindModel.select().where(KindModel._name.contains("Variable")):
+            if checkModifiersInKind(modifiers, kind):
+                if not kind_selected or len(kind_selected._name) > len(kind._name):
+                    kind_selected = kind
+        print(kind_selected)
+        return kind_selected
+
     def get_method_kind(self, modifiers):
         """Return the kind ID based on the modifier"""
         if '@Override' in modifiers:
@@ -163,14 +200,14 @@ class EntityGenerator:
         return listener.interface_properties
 
     def getCreatedClassEntity(self, class_longname, class_potential_longname, file_address):
-        props = p.getClassProperties(class_potential_longname, file_address)
+        props = self.getClassProperties(class_potential_longname)
         if not props:
             return self.getClassEntity(class_longname, file_address)
         else:
             return self.getClassEntity(class_potential_longname, file_address)
 
     def getClassEntity(self, class_longname, file_address):
-        props = p.getClassProperties(class_longname, file_address)
+        props = self.getClassProperties(class_longname)
         if not props:  # This class is unknown, unknown class id: 84
             ent = EntityModel.get_or_create(_kind=84, _name=class_longname.split(".")[-1],
                                             _longname=class_longname, _contents="")
@@ -180,19 +217,19 @@ class EntityGenerator:
             kind = self.findKindWithKeywords("Class", props["modifiers"])
             ent = EntityModel.get_or_create(_kind=kind, _name=props["name"],
                                             _longname=props["longname"],
-                                            _parent=props["parent"] if props["parent"] is not None else file_ent,
+                                            _parent=props["parent"] if props["parent"] is not None else file_address,
                                             _contents=props["contents"])
         return ent[0]
 
     def getInterfaceEntity(self, interface_longname, file_address):  # can't be of unknown kind!
-        props = p.getInterfaceProperties(interface_longname, file_address)
+        props = self.getInterfaceProperties(interface_longname)
         if not props:
             return None
         else:
             kind = self.findKindWithKeywords("Interface", props["modifiers"])
             ent = EntityModel.get_or_create(_kind=kind, _name=props["name"],
                                             _longname=props["longname"],
-                                            _parent=props["parent"] if props["parent"] is not None else file_ent,
+                                            _parent=props["parent"] if props["parent"] is not None else file_address,
                                             _contents=props["contents"])
         return ent[0]
 

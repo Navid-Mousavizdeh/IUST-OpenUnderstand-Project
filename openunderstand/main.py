@@ -13,6 +13,7 @@ from fnmatch import fnmatch
 
 from antlr4 import *
 
+from analysis_passes.variable_listener import VariableListener
 from gen.javaLabeled.JavaParserLabeled import JavaParserLabeled
 from gen.javaLabeled.JavaLexer import JavaLexer
 
@@ -72,7 +73,7 @@ class Project:
         for ref_dict in ref_dicts:
             ent = get_created_entity(ref_dict['ent_name'])
             scope = ref_dict['scope']
-            print(ref_dict)
+            # print(ref_dict)
             _, _ = ReferenceModel.get_or_create(
                 _kind=190,
                 _file=ref_dict['file'],
@@ -105,19 +106,30 @@ if __name__ == '__main__':
     # Lists
     create_createby_list = []
 
+    # files = [r'C:\Users\Amir-Mohammad\Desktop\Educational\6th_Semester\Compiler\project\IUST-OpenUnderstand-Project\benchmark\JavaProject\JavaModularApplicationTest\src\Main\classes\com\isutgp11\demo\integral.java']
+
     for file_address in files:
         try:
             parse_tree = p.Parse(file_address)
         except Exception as e:
             print("An Error occurred in file:" + file_address + "\n" + str(e))
             continue
+
         entity_generator = EntityGenerator(file_address, parse_tree)
-        # try:
-        # create
-        listener = CreateAndCreateBy(entity_generator)
-        listener.create = []
-        Project.Walk(listener, parse_tree)
-        create_createby_list = create_createby_list + listener.create
-        # except Exception as e:
-        #     print("An Error occurred for reference implement/implementBy in file:" + file_address + "\n" + str(e))
-    Project.add_create_and_createby_reference(create_createby_list)
+
+        try:
+            # create
+            listener = CreateAndCreateBy(entity_generator)
+            listener.create = []
+            Project.Walk(listener, parse_tree)
+            create_createby_list = create_createby_list + listener.create
+        except Exception as e:
+            print("An Error occurred for reference create/createBy in file:" + file_address + "\n" + str(e))
+
+        try:
+            listener = VariableListener(entity_generator)
+            Project.Walk(listener, parse_tree)
+        except Exception as e:
+            print("An Error occurred for reference variable in file:" + file_address + "\n" + str(e))
+
+Project.add_create_and_createby_reference(create_createby_list)
