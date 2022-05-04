@@ -74,6 +74,7 @@ class EntityGenerator:
                 parent_entity_contents = entity.getText()
                 parent_entity_type = entity.typeTypeOrVoid().getText()
                 method_modifiers = self.get_method_accessor(entity)
+                print(method_modifiers)
                 parent_entity_kind = self.get_method_kind(method_modifiers)
                 method_ent = EntityModel.get_or_create(
                     _kind=parent_entity_kind,
@@ -102,8 +103,8 @@ class EntityGenerator:
                 parent_entity_longname = self.package_string + "." + entity.IDENTIFIER().getText()
                 self.package_string = self.package_string + "." + entity.IDENTIFIER().getText()
                 parent_entity_contents = entity.getText()
-                props = p.getInterfaceProperties(parent_entity_longname, self.path)
-                parent_entity_kind = self.findKindWithKeywords("Class", props["modifiers"])
+                props = self.getInterfaceProperties(parent_entity_longname)
+                parent_entity_kind = self.findKindWithKeywords("Interface", props["modifiers"])
                 Interface_ent = EntityModel.get_or_create(
                     _kind=parent_entity_kind,
                     _parent=parent_entity_parent,
@@ -133,6 +134,10 @@ class EntityGenerator:
         """Return the kind ID based on the modifier"""
         if '@Override' in modifiers:
             modifiers.remove('@Override')
+        if '@Nullable' in modifiers:
+            modifiers.remove('@Nullable')
+        if '@NotNull' in modifiers:
+            modifiers.remove('@NotNull')
         if len(modifiers) == 0:
             modifiers.append("default")
         kind_selected = None
