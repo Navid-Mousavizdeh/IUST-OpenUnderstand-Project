@@ -12,8 +12,7 @@ from openunderstand.gen.javaLabeled.JavaParserLabeled import JavaParserLabeled
 
 
 class VariableListener(JavaParserLabeledListener):
-    """A listener class for detecting variables"""
-
+    """A listener class for detecting variables and java Modify"""
     def __init__(self, entity_manager_object):
         self.entity_manager = entity_manager_object
         self.package = ""
@@ -78,7 +77,7 @@ class VariableListener(JavaParserLabeledListener):
         self.type = ctx.typeType().getText()
 
     # value
-    def enterVariableInitializer1(self, ctx:JavaParserLabeled.VariableInitializer1Context):
+    def enterVariableInitializer1(self, ctx: JavaParserLabeled.VariableInitializer1Context):
         self.value = ctx.getText()
 
     # interface variable
@@ -98,5 +97,4 @@ class VariableListener(JavaParserLabeledListener):
                "type": self.type,
                "modifiers": self.modifiers,
                "value": self.value}
-        self.entity_manager.get_or_create_variable_entity(res)
         print(self.modifiers, self.package, self.parent, self.type, ctx.IDENTIFIER().getText())

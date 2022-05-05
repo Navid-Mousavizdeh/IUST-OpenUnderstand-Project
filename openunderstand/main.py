@@ -24,7 +24,7 @@ from oudb.fill import main
 from analysis_passes.couple_coupleby import ImplementCoupleAndImplementByCoupleBy
 from analysis_passes.create_createby import CreateAndCreateBy
 from analysis_passes.declare_declarein import DeclareAndDeclareinListener
-from analysis_passes.java_modify_modifyby import ModifyModifyByListener
+from analysis_passes.modify_modifyby import ModifyListener
 from analysis_passes.java_usemodule_usemoduleby import UseModuleUseModuleByListener
 from analysis_passes.class_properties import ClassPropertiesListener, InterfacePropertiesListener
 from analysis_passes.entity_manager import EntityGenerator, FileEntityManager, get_created_entity
@@ -91,6 +91,29 @@ class Project:
                 _scope=ent,
             )
 
+    @staticmethod
+    def add_modify_and_modifyby_reference(ref_dicts):
+        for ref_dict in ref_dicts:
+            ent = ref_dict['ent']
+            scope = ref_dict['scope']
+            # print(ref_dict)
+            _, _ = ReferenceModel.get_or_create(
+                _kind=208,
+                _file=ref_dict['file'],
+                _line=ref_dict['line'],
+                _column=ref_dict['column'],
+                _ent=ent,
+                _scope=scope,
+            )
+            _, _ = ReferenceModel.get_or_create(
+                _kind=209,
+                _file=ref_dict['file'],
+                _line=ref_dict['line'],
+                _column=ref_dict['column'],
+                _ent=scope,
+                _scope=ent,
+            )
+
 
 if __name__ == '__main__':
     p = Project()
@@ -105,6 +128,7 @@ if __name__ == '__main__':
     files = p.getListOfFiles(path)
     # Lists
     create_createby_list = []
+    modify_modifyby_list = []
 
     # files = [r'C:\Users\Amir-Mohammad\Desktop\Educational\6th_Semester\Compiler\project\IUST-OpenUnderstand-Project\benchmark\JavaProject\JavaModularApplicationTest\src\Main\classes\com\isutgp11\demo\integral.java']
 
@@ -132,4 +156,14 @@ if __name__ == '__main__':
         except Exception as e:
             print("An Error occurred for reference variable in file:" + file_address + "\n" + str(e))
 
+        try:
+            # modify
+            listener = ModifyListener(entity_generator)
+            listener.modify = []
+            Project.Walk(listener, parse_tree)
+            modify_modifyby_list = modify_modifyby_list + listener.modify
+        except Exception as e:
+            print("An Error occurred for reference create/createBy in file:" + file_address + "\n" + str(e))
+
 Project.add_create_and_createby_reference(create_createby_list)
+Project.add_modify_and_modifyby_reference(modify_modifyby_list)
