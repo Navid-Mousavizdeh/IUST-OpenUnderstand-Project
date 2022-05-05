@@ -94,7 +94,8 @@ class Project:
     @staticmethod
     def add_modify_and_modifyby_reference(ref_dicts):
         for ref_dict in ref_dicts:
-            ent = ref_dict['ent']
+            longname = ref_dict['ent']
+            ent = ModifyListener.get_different_combinations(longname)
             scope = ref_dict['scope']
             # print(ref_dict)
             _, _ = ReferenceModel.get_or_create(
@@ -156,14 +157,14 @@ if __name__ == '__main__':
         except Exception as e:
             print("An Error occurred for reference variable in file:" + file_address + "\n" + str(e))
 
-        try:
+        # try:
             # modify
-            listener = ModifyListener(entity_generator)
-            listener.modify = []
-            Project.Walk(listener, parse_tree)
-            modify_modifyby_list = modify_modifyby_list + listener.modify
-        except Exception as e:
-            print("An Error occurred for reference create/createBy in file:" + file_address + "\n" + str(e))
+        listener = ModifyListener(entity_generator)
+        listener.modify = []
+        Project.Walk(listener, parse_tree)
+        modify_modifyby_list = modify_modifyby_list + listener.modify
+        # except Exception as e:
+        #     print("An Error occurred for reference create/createBy in file:" + file_address + "\n" + str(e))
 
 Project.add_create_and_createby_reference(create_createby_list)
 Project.add_modify_and_modifyby_reference(modify_modifyby_list)

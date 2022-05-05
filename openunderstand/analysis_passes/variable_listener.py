@@ -12,7 +12,8 @@ from openunderstand.gen.javaLabeled.JavaParserLabeled import JavaParserLabeled
 
 
 class VariableListener(JavaParserLabeledListener):
-    """A listener class for detecting variables and java Modify"""
+    """A listener class for detecting variables"""
+
     def __init__(self, entity_manager_object):
         self.entity_manager = entity_manager_object
         self.package = ""
@@ -77,24 +78,25 @@ class VariableListener(JavaParserLabeledListener):
         self.type = ctx.typeType().getText()
 
     # value
-    def enterVariableInitializer1(self, ctx: JavaParserLabeled.VariableInitializer1Context):
+    def enterVariableInitializer1(self, ctx:JavaParserLabeled.VariableInitializer1Context):
         self.value = ctx.getText()
 
     # interface variable
     def enterConstantDeclarator(self, ctx: JavaParserLabeled.ConstantDeclaratorContext):
-        res = {"name": ctx.IDENTIFIER().getText(),
+        res = {"name": ctx.IDENTIFIER().getText().lstrip('_'),
                "parent_longname": self.package + '.' + self.parent,
                "type": self.type,
                "modifiers": self.modifiers,
                "value": self.value}
         self.entity_manager.get_or_create_variable_entity(res)
-        print(self.modifiers, self.package, self.parent, self.type, ctx.IDENTIFIER().getText())
+        # print(self.modifiers, self.package, self.parent, self.type, ctx.IDENTIFIER().getText())
 
     # variable
     def enterVariableDeclaratorId(self, ctx: JavaParserLabeled.VariableDeclaratorIdContext):
-        res = {"name": ctx.IDENTIFIER().getText(),
+        res = {"name": ctx.IDENTIFIER().getText().lstrip('_'),
                "parent_longname": self.package + '.' + self.parent,
                "type": self.type,
                "modifiers": self.modifiers,
                "value": self.value}
-        print(self.modifiers, self.package, self.parent, self.type, ctx.IDENTIFIER().getText())
+        self.entity_manager.get_or_create_variable_entity(res)
+        # print(self.modifiers, self.package, self.parent, self.type, ctx.IDENTIFIER().getText())

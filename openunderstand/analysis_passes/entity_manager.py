@@ -35,8 +35,6 @@ def get_created_entity(name):
 
 def get_created_entity_longname(longname):
     entity = EntityModel.get_or_none(_longname=longname)
-    if entity is None:
-        raise Exception("No entity found with this name.")
     return entity
 
 
@@ -63,7 +61,7 @@ class EntityGenerator:
     def get_or_create_variable_entity(self, res_dict):
         _name = res_dict['name']
         modifiers = res_dict['modifiers']
-        print(modifiers)
+        # print(modifiers)
         _kind = self.get_variable_kind(modifiers) if modifiers is not None else 168
         _type = res_dict['type']
         _value = res_dict['value']
@@ -171,7 +169,7 @@ class EntityGenerator:
             if checkModifiersInKind(modifiers, kind):
                 if not kind_selected or len(kind_selected._name) > len(kind._name):
                     kind_selected = kind
-        print(kind_selected)
+        # print(kind_selected)
         return kind_selected
 
     def get_method_kind(self, modifiers):

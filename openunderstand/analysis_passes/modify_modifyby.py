@@ -53,12 +53,14 @@ class ModifyListener(JavaParserLabeledListener):
         [line, col] = str(ctx.start).split(",")[3].split(":")
         parents = self.entity_manager.get_or_create_parent_entities(ctx)
         parent = parents[-1][1]
+        name = ctx.expression().getText().replace("this", "").replace(".", "").lstrip('_')
+        longname = self.package + '.' + self.parent + '.' + name
         self.modify.append({
             'kind': 208,
             'file': self.entity_manager.file_ent,
             'line': line,
             'column': col.replace("]", ""),
-            'ent': get_created_entity_longname(self.package + '.' + self.parent + '.' + self.name),
+            'ent': longname,
             'scope': parent[0]
         })
 
@@ -66,18 +68,22 @@ class ModifyListener(JavaParserLabeledListener):
         [line, col] = str(ctx.start).split(",")[3].split(":")
         parents = self.entity_manager.get_or_create_parent_entities(ctx)
         parent = parents[-1][1]
+        name = ctx.expression().getText().replace("this", "").replace(".", "").lstrip('_')
+        longname = self.package + '.' + self.parent + '.' + name
         self.modify.append({
             'kind': 208,
             'file': self.entity_manager.file_ent,
             'line': line,
             'column': col.replace("]", ""),
-            'ent': get_created_entity_longname(self.package + '.' + self.parent + '.' + self.name),
+            'ent': longname,
             'scope': parent[0]
         })
 
     def enterExpression21(self, ctx: JavaParserLabeled.Expression21Context):
         operations = ['+=', '-=', '/=', '*=', '&=', '|=', '^=', '%=']
         if ctx.children[1].getText() in operations:
+            name = ctx.expression()[0].getText().replace("this", "").replace(".", "").lstrip('_')
+            longname = self.package + '.' + self.parent + '.' + name
             [line, col] = str(ctx.start).split(",")[3].split(":")
             parents = self.entity_manager.get_or_create_parent_entities(ctx)
             parent = parents[-1][1]
@@ -86,7 +92,7 @@ class ModifyListener(JavaParserLabeledListener):
                 'file': self.entity_manager.file_ent,
                 'line': line,
                 'column': col.replace("]", ""),
-                'ent': get_created_entity_longname(self.package + '.' + self.parent + '.' + self.name),
+                'ent': longname,
                 'scope': parent[0]
             })
 
@@ -98,3 +104,14 @@ class ModifyListener(JavaParserLabeledListener):
 
     def exitExpression21(self, ctx:JavaParserLabeled.Expression21Context):
         self.enter_modify = False
+
+    @staticmethod
+    def get_different_combinations(longname):
+        names_array = longname.split(".")
+        variable_name = names_array[-1]
+        for i in range(1, len(names_array)):
+            candidate_longname = ".".join(names_array[0:len(names_array) - i])
+            ent = get_created_entity_longname(candidate_longname + "." + variable_name)
+            if ent is not None:
+                return ent
+        raise Exception("No entity found.")
