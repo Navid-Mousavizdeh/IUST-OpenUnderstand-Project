@@ -83,20 +83,20 @@ class VariableListener(JavaParserLabeledListener):
 
     # interface variable
     def enterConstantDeclarator(self, ctx: JavaParserLabeled.ConstantDeclaratorContext):
-        res = {"name": ctx.IDENTIFIER().getText(),
+        res = {"name": ctx.IDENTIFIER().getText().lstrip('_'),
                "parent_longname": self.package + '.' + self.parent,
                "type": self.type,
                "modifiers": self.modifiers,
                "value": self.value}
         self.entity_manager.get_or_create_variable_entity(res)
-        print(self.modifiers, self.package, self.parent, self.type, ctx.IDENTIFIER().getText())
+        # print(self.modifiers, self.package, self.parent, self.type, ctx.IDENTIFIER().getText())
 
     # variable
     def enterVariableDeclaratorId(self, ctx: JavaParserLabeled.VariableDeclaratorIdContext):
-        res = {"name": ctx.IDENTIFIER().getText(),
+        res = {"name": ctx.IDENTIFIER().getText().lstrip('_'),
                "parent_longname": self.package + '.' + self.parent,
                "type": self.type,
                "modifiers": self.modifiers,
                "value": self.value}
         self.entity_manager.get_or_create_variable_entity(res)
-        print(self.modifiers, self.package, self.parent, self.type, ctx.IDENTIFIER().getText())
+        # print(self.modifiers, self.package, self.parent, self.type, ctx.IDENTIFIER().getText())

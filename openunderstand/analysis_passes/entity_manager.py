@@ -33,6 +33,10 @@ def get_created_entity(name):
         raise Exception("No entity found with this name.")
     return entity
 
+def get_created_entity_longname(longname):
+    entity = EntityModel.get_or_none(_longname=longname)
+    return entity
+
 
 def checkModifiersInKind(modifiers, kind):
     """check if modifier is in kind and return it"""
@@ -57,13 +61,13 @@ class EntityGenerator:
     def get_or_create_variable_entity(self, res_dict):
         _name = res_dict['name']
         modifiers = res_dict['modifiers']
-        print(modifiers)
+        # print(modifiers)
         _kind = self.get_variable_kind(modifiers) if modifiers is not None else 168
         _type = res_dict['type']
         _value = res_dict['value']
         _parent = EntityModel.get_or_none(_longname=res_dict['parent_longname'])
         _longname = _parent._longname + '.' + _name
-        EntityModel.get_or_create(
+        variable_entity, _ = EntityModel.get_or_create(
             _kind=_kind,
             _parent=_parent,
             _name=_name,
@@ -71,6 +75,7 @@ class EntityGenerator:
             _longname=_longname,
             _type=_type,
             _contents="")
+        return variable_entity
 
     def get_or_create_parent_entities(self, ctx):
         """Make all parents entities for create and createby reference."""
@@ -164,7 +169,7 @@ class EntityGenerator:
             if checkModifiersInKind(modifiers, kind):
                 if not kind_selected or len(kind_selected._name) > len(kind._name):
                     kind_selected = kind
-        print(kind_selected)
+        # print(kind_selected)
         return kind_selected
 
     def get_method_kind(self, modifiers):
