@@ -29,8 +29,6 @@ FILE_KIND_ID = 1
 
 def get_created_entity(name):
     entity = EntityModel.get_or_none(_name=name)
-    if entity is None:
-        raise Exception("No entity found with this name.")
     return entity
 
 def get_created_entity_longname(longname):
@@ -65,6 +63,7 @@ class EntityGenerator:
         _kind = self.get_variable_kind(modifiers) if modifiers is not None else 168
         _type = res_dict['type']
         _value = res_dict['value']
+        # print(res_dict['parent_longname'])
         _parent = EntityModel.get_or_none(_longname=res_dict['parent_longname'])
         _longname = _parent._longname + '.' + _name
         variable_entity, _ = EntityModel.get_or_create(

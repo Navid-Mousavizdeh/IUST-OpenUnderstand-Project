@@ -18,6 +18,8 @@ class VariableListener(JavaParserLabeledListener):
         self.entity_manager = entity_manager_object
         self.package = ""
         self._class = ""
+        self._method = ""
+        self._interface = ""
         self.parent = ""
         self.type = None
         self.modifiers = []
@@ -29,20 +31,62 @@ class VariableListener(JavaParserLabeledListener):
 
     # class parent
     def enterClassDeclaration(self, ctx: JavaParserLabeled.ClassDeclarationContext):
-        self._class = ctx.IDENTIFIER().getText() + '.'
+        self._class = self._class + ctx.IDENTIFIER().getText() + '.'
         self.parent = ctx.IDENTIFIER().getText()
+        interface_array = self._interface.split(".")
+        if "" in interface_array:
+            interface_array.remove("")
+        if len(interface_array) > 0:
+            self._class = ".".join(interface_array) + "." + self._class
+        # print("------- self._class:", self._class)
+        if len(self._class.split(".")) > 2:
+            # print("---- len(self._class.split(.)):", len(self._class.split(".")))
+            self.parent = self._class[:-1]
 
     # exit class parent
     def exitClassDeclaration(self, ctx: JavaParserLabeled.ClassDeclarationContext):
-        self._class = ""
+        class_array = self._class.split(".")
+        if "" in class_array:
+            class_array.remove("")
+        self._class = ".".join(class_array[:-1])
+        if len(class_array[:-1]) > 0:
+            self._class = self._class + "."
 
     # method parent
     def enterMethodDeclaration(self, ctx: JavaParserLabeled.MethodDeclarationContext):
-        self.parent = self._class + ctx.IDENTIFIER().getText()
+        self._method = self._method + ctx.IDENTIFIER().getText() + "."
+        self.parent = self._class + self._method[:-1]
+        # print("self.method:", self._method)
+        # print("self.parent:", self.parent)
+
+    def exitMethodDeclaration(self, ctx:JavaParserLabeled.MethodDeclarationContext):
+        method_array = self._method.split(".")
+        if "" in method_array:
+            method_array.remove("")
+        self._method = ".".join(method_array[:-1])
+        if len(method_array[:-1]) > 0:
+            self._method = self._method + "."
 
     # interface parent
     def enterInterfaceDeclaration(self, ctx: JavaParserLabeled.InterfaceDeclarationContext):
-        self.parent = ctx.IDENTIFIER().getText()
+        self._interface = self._interface + ctx.IDENTIFIER().getText() + "."
+        class_array = self._class.split(".")
+        if "" in class_array:
+            class_array.remove("")
+        # print(class_array)
+        if len(class_array) > 0:
+            self.parent = ".".join(class_array) + "." + self._interface[:-1]
+        else:
+            self.parent = self._interface[:-1]
+        # print("self.parent:", self.parent)
+
+    def exitInterfaceDeclaration(self, ctx:JavaParserLabeled.InterfaceDeclarationContext):
+        interface_array = self._interface.split(".")
+        if "" in interface_array:
+            interface_array.remove("")
+        self._interface = ".".join(interface_array[:-1])
+        if len(interface_array[:-1]) > 0:
+            self._interface = self._interface + "."
 
     # interface modifiers
     def enterInterfaceBodyDeclaration(self, ctx: JavaParserLabeled.InterfaceBodyDeclarationContext):
@@ -93,6 +137,7 @@ class VariableListener(JavaParserLabeledListener):
 
     # variable
     def enterVariableDeclaratorId(self, ctx: JavaParserLabeled.VariableDeclaratorIdContext):
+        # print("--- self.package + '.' + self.parent:", self.package + '.' + self.parent)
         res = {"name": ctx.IDENTIFIER().getText().lstrip('_'),
                "parent_longname": self.package + '.' + self.parent,
                "type": self.type,
