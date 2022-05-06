@@ -79,7 +79,7 @@ class Project:
                 _file=ref_dict['file'],
                 _line=ref_dict['line'],
                 _column=ref_dict['column'],
-                _ent=ent,
+                _ent=ent if ent is not None else ref_dict['ent_name'],
                 _scope=scope,
             )
             _, _ = ReferenceModel.get_or_create(
@@ -88,7 +88,7 @@ class Project:
                 _line=ref_dict['line'],
                 _column=ref_dict['column'],
                 _ent=scope,
-                _scope=ent,
+                _scope=ent if ent is not None else ref_dict['ent_name'],
             )
 
     @staticmethod
@@ -103,7 +103,7 @@ class Project:
                 _file=ref_dict['file'],
                 _line=ref_dict['line'],
                 _column=ref_dict['column'],
-                _ent=ent,
+                _ent=ent if ent is not None else "NOT FOUND",
                 _scope=scope,
             )
             _, _ = ReferenceModel.get_or_create(
@@ -112,7 +112,7 @@ class Project:
                 _line=ref_dict['line'],
                 _column=ref_dict['column'],
                 _ent=scope,
-                _scope=ent,
+                _scope=ent if ent is not None else "NOT FOUND",
             )
 
 
@@ -157,14 +157,14 @@ if __name__ == '__main__':
         except Exception as e:
             print("An Error occurred for reference variable in file:" + file_address + "\n" + str(e))
 
-        # try:
+        try:
             # modify
-        listener = ModifyListener(entity_generator)
-        listener.modify = []
-        Project.Walk(listener, parse_tree)
-        modify_modifyby_list = modify_modifyby_list + listener.modify
-        # except Exception as e:
-        #     print("An Error occurred for reference create/createBy in file:" + file_address + "\n" + str(e))
+            listener = ModifyListener(entity_generator)
+            listener.modify = []
+            Project.Walk(listener, parse_tree)
+            modify_modifyby_list = modify_modifyby_list + listener.modify
+        except Exception as e:
+            print("An Error occurred for reference create/createBy in file:" + file_address + "\n" + str(e))
 
-Project.add_create_and_createby_reference(create_createby_list)
-Project.add_modify_and_modifyby_reference(modify_modifyby_list)
+    Project.add_create_and_createby_reference(create_createby_list)
+    Project.add_modify_and_modifyby_reference(modify_modifyby_list)

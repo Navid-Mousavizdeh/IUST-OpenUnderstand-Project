@@ -16,6 +16,7 @@ __credits__ = ["Dr.Parsa", "Dr.Zakeri", "Mehdi Razavi", "Navid Mousavizadeh", "A
 __license__ = "GPL"
 __version__ = "1.0.0"
 
+import re
 from openunderstand.gen.javaLabeled.JavaParserLabeledListener import JavaParserLabeledListener
 from openunderstand.gen.javaLabeled.JavaParserLabeled import JavaParserLabeled
 from openunderstand.analysis_passes.entity_manager import EntityGenerator
@@ -46,7 +47,7 @@ class CreateAndCreateBy(JavaParserLabeledListener):
             'file': self.entity_manager.file_ent,
             'line': line,
             'column': col.replace("]", ""),
-            'ent_name': ctx.creator().getText().replace("()", ""),
+            'ent_name':  re.split('\W+', ctx.creator().getText())[0],
             'scope': parent[0]
         })
 
