@@ -72,6 +72,12 @@ class Project:
     def add_create_and_createby_reference(ref_dicts):
         for ref_dict in ref_dicts:
             ent = get_created_entity(ref_dict['ent_name'])
+            if ent is None:
+                ent, _ = EntityModel.get_or_create(
+                    _kind=84,
+                    _name=ref_dict['ent_name'],
+                    _longname=ref_dict['ent_name']
+                )
             scope = ref_dict['scope']
             # print(ref_dict)
             _, _ = ReferenceModel.get_or_create(
@@ -79,7 +85,7 @@ class Project:
                 _file=ref_dict['file'],
                 _line=ref_dict['line'],
                 _column=ref_dict['column'],
-                _ent=ent if ent is not None else ref_dict['ent_name'],
+                _ent=ent,
                 _scope=scope,
             )
             _, _ = ReferenceModel.get_or_create(
@@ -88,7 +94,7 @@ class Project:
                 _line=ref_dict['line'],
                 _column=ref_dict['column'],
                 _ent=scope,
-                _scope=ent if ent is not None else ref_dict['ent_name'],
+                _scope=ent,
             )
 
     @staticmethod
