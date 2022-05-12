@@ -13,7 +13,7 @@ from fnmatch import fnmatch
 
 from antlr4 import *
 
-from analysis_passes.variable_listener import VariableListener
+from analysis_passes.variable_listener_G11 import VariableListener
 from gen.javaLabeled.JavaParserLabeled import JavaParserLabeled
 from gen.javaLabeled.JavaLexer import JavaLexer
 
@@ -22,12 +22,12 @@ from oudb.api import open as db_open, create_db
 from oudb.fill import main
 
 from analysis_passes.couple_coupleby import ImplementCoupleAndImplementByCoupleBy
-from analysis_passes.create_createby import CreateAndCreateBy
+from analysis_passes.create_createby_G11 import CreateAndCreateBy
 from analysis_passes.declare_declarein import DeclareAndDeclareinListener
 from analysis_passes.modify_modifyby import ModifyListener
-from analysis_passes.java_usemodule_usemoduleby import UseModuleUseModuleByListener
+from analysis_passes.usemodule_usemoduleby_G11 import UseModuleUseModuleByListener
 from analysis_passes.class_properties import ClassPropertiesListener, InterfacePropertiesListener
-from analysis_passes.entity_manager import EntityGenerator, FileEntityManager, get_created_entity
+from analysis_passes.entity_manager_G11 import EntityGenerator, FileEntityManager, get_created_entity
 
 
 class Project:
@@ -72,6 +72,12 @@ class Project:
     def add_create_and_createby_reference(ref_dicts):
         for ref_dict in ref_dicts:
             ent = get_created_entity(ref_dict['ent_name'])
+            if ent is None:
+                ent, _ = EntityModel.get_or_create(
+                    _kind=84,
+                    _name=ref_dict['ent_name'],
+                    _longname=ref_dict['ent_name']
+                )
             scope = ref_dict['scope']
             # print(ref_dict)
             _, _ = ReferenceModel.get_or_create(
@@ -79,7 +85,7 @@ class Project:
                 _file=ref_dict['file'],
                 _line=ref_dict['line'],
                 _column=ref_dict['column'],
-                _ent=ent if ent is not None else ref_dict['ent_name'],
+                _ent=ent,
                 _scope=scope,
             )
             _, _ = ReferenceModel.get_or_create(
@@ -88,7 +94,7 @@ class Project:
                 _line=ref_dict['line'],
                 _column=ref_dict['column'],
                 _ent=scope,
-                _scope=ent if ent is not None else ref_dict['ent_name'],
+                _scope=ent,
             )
 
     @staticmethod
