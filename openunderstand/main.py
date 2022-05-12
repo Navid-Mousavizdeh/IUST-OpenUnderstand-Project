@@ -13,7 +13,7 @@ from fnmatch import fnmatch
 
 from antlr4 import *
 
-from analysis_passes.variable_listener import VariableListener
+from analysis_passes.variable_listener_G11 import VariableListener
 from gen.javaLabeled.JavaParserLabeled import JavaParserLabeled
 from gen.javaLabeled.JavaLexer import JavaLexer
 
@@ -27,7 +27,7 @@ from analysis_passes.declare_declarein import DeclareAndDeclareinListener
 from analysis_passes.modify_modifyby import ModifyListener
 from analysis_passes.java_usemodule_usemoduleby import UseModuleUseModuleByListener
 from analysis_passes.class_properties import ClassPropertiesListener, InterfacePropertiesListener
-from analysis_passes.entity_manager import EntityGenerator, FileEntityManager, get_created_entity
+from analysis_passes.entity_manager_G11 import EntityGenerator, FileEntityManager, get_created_entity
 
 
 class Project:
