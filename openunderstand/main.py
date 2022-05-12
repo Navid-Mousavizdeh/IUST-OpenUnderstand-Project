@@ -15,10 +15,10 @@ from oudb.api import open as db_open, create_db
 from oudb.fill import main
 
 from analysis_passes.couple_coupleby import ImplementCoupleAndImplementByCoupleBy
-from analysis_passes.create_createby import CreateAndCreateBy
+from analysis_passes.create_createby_G11 import CreateAndCreateBy
 from analysis_passes.declare_declarein import DeclareAndDeclareinListener
-from analysis_passes.java_modify_modifyby import ModifyModifyByListener
-from analysis_passes.java_usemodule_usemoduleby import UseModuleUseModuleByListener
+from analysis_passes.modify_modifyby_G11 import ModifyModifyByListener
+from analysis_passes.usemodule_usemoduleby_G11 import UseModuleUseModuleByListener
 from analysis_passes.class_properties import ClassPropertiesListener, InterfacePropertiesListener
 
 

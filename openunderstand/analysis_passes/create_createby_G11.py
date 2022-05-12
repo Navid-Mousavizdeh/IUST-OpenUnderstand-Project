@@ -37,11 +37,11 @@ class CreateAndCreateBy(JavaParserLabeledListener):
 
     def findmethodacess(self, c):
         parents = ""
-        modifiers=[]
+        modifiers = []
         current = c
         while current is not None:
             if "ClassBodyDeclaration" in type(current.parentCtx).__name__:
-                parents=(current.parentCtx.modifier())
+                parents = (current.parentCtx.modifier())
                 break
             current = current.parentCtx
         for x in parents:
@@ -54,7 +54,7 @@ class CreateAndCreateBy(JavaParserLabeledListener):
 
     def enterExpression4(self, ctx:JavaParserLabeled.Expression4Context):
         modifiers=self.findmethodacess(ctx)
-        mothodedreturn,methodcontext=self.findmethodreturntype(ctx)
+        mothodedreturn, methodcontext = self.findmethodreturntype(ctx)
 
         if ctx.creator().classCreatorRest():
             allrefs= class_properties.ClassPropertiesListener.findParents(ctx)  #self.findParents(ctx)
