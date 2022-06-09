@@ -12,7 +12,7 @@ from antlr4 import *
 from gen.javaLabeled.JavaLexer import JavaLexer
 from gen.javaLabeled.JavaParserLabeled import JavaParserLabeled
 from gen.javaLabeled.JavaParserLabeledListener import JavaParserLabeledListener
-from analysis_passes.entity_manager import get_created_entity_longname, get_all_files, get_created_entity_id
+from analysis_passes.entity_manager_G11 import get_created_entity_longname, get_all_files, get_created_entity_id
 from oudb.api import open as db_open, create_db
 
 
