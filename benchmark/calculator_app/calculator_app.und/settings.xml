@@ -41,8 +41,7 @@
   <annotations_options/>
   <comparison_options
     comparison_db=""
-    git_repo=""
-    git_commit=""/>
+    git_repo=""/>
   <imports/>
   <java_options
     count_javadoc_in_metrics="true"
